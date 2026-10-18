@@ -2,6 +2,8 @@
 
 > **Bhakundo** (नेपाली: भाकुण्डो) is a 100% ad-free, high-performance real-time football platform celebrating Nepali football spirit alongside global competitions.
 
+🌐 **Live Website**: [https://bhakundo-roan.vercel.app](https://bhakundo-roan.vercel.app)
+
 ---
 
 ## 🌟 Key Highlights
