@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120">
+  <!-- Nepal Flag Double Pennant Silhouette -->
+  <polygon points="6,114 6,6 88,48 42,48 88,114" fill="#003893" stroke="#002566" stroke-width="2"/>
+  <polygon points="12,108 12,14 76,46 36,46 76,108" fill="#DC143C"/>
+  <!-- Sun & Moon symbols -->
+  <circle cx="28" cy="34" r="5" fill="#FFFFFF"/>
+  <circle cx="30" cy="78" r="8" fill="#FFFFFF"/>
+</svg>
