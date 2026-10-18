@@ -16,8 +16,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
   onToggleFavorite,
 }) => {
   const isLive = match.status === 'LIVE' || match.status === 'HT';
-  const isNepalMatch = match.leagueCountry === 'Nepal' || match.homeTeam.country === 'Nepal';
-  const latestGoal = match.events.find((e) => e.type === 'GOAL');
+  const isNepalMatch = match.leagueCountry === 'Nepal' || match.homeTeam?.country === 'Nepal';
+  const latestGoal = (match.events || []).find((e) => e.type === 'GOAL');
 
   return (
     <div
@@ -72,7 +72,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
               onToggleFavorite(match.id);
               soundEffects.playClick();
             }}
-            className="p-1 rounded-md text-slate-400 hover:text-amber-400 hover:bg-slate-800 transition-colors"
+            className="p-1 rounded-md text-slate-400 hover:text-amber-400 hover:bg-slate-800 transition-colors cursor-pointer"
             title="Pin to favorites"
           >
             <Star
@@ -90,14 +90,18 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         <div className="col-span-5 flex items-center justify-end gap-2.5 text-right">
           <div className="truncate">
             <span className="block font-bold text-sm sm:text-base text-slate-100 group-hover:text-white transition-colors truncate">
-              {match.homeTeam.name}
+              {match.homeTeam?.name || 'Home Team'}
             </span>
             <span className="text-[11px] text-slate-400 font-mono">
-              {match.homeTeam.country} {match.homeTeam.flag}
+              {match.homeTeam?.country || ''} {match.homeTeam?.flag || ''}
             </span>
           </div>
-          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center font-black text-sm text-slate-300 shrink-0 shadow-inner group-hover:border-slate-500 transition-colors">
-            {match.homeTeam.shortName}
+          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center font-black text-sm text-slate-300 shrink-0 shadow-inner group-hover:border-slate-500 transition-colors overflow-hidden p-1">
+            {match.homeTeam?.logo ? (
+              <img src={match.homeTeam.logo} alt="" className="w-full h-full object-contain" />
+            ) : (
+              <span>{match.homeTeam?.shortName || 'HME'}</span>
+            )}
           </div>
         </div>
 
@@ -110,11 +114,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
           ) : (
             <div className="flex items-center gap-1.5 sm:gap-2 text-xl sm:text-3xl font-black text-white font-mono tracking-tight bg-slate-950/80 px-2.5 sm:px-3.5 py-1 rounded-xl border border-slate-800">
               <span className={isLive && match.homeScore > match.awayScore ? 'text-amber-400' : 'text-white'}>
-                {match.homeScore}
+                {match.homeScore ?? 0}
               </span>
               <span className="text-slate-500 text-base sm:text-lg">-</span>
               <span className={isLive && match.awayScore > match.homeScore ? 'text-amber-400' : 'text-white'}>
-                {match.awayScore}
+                {match.awayScore ?? 0}
               </span>
             </div>
           )}
@@ -122,15 +126,19 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
         {/* Away Team */}
         <div className="col-span-5 flex items-center justify-start gap-2.5 text-left">
-          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center font-black text-sm text-slate-300 shrink-0 shadow-inner group-hover:border-slate-500 transition-colors">
-            {match.awayTeam.shortName}
+          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center font-black text-sm text-slate-300 shrink-0 shadow-inner group-hover:border-slate-500 transition-colors overflow-hidden p-1">
+            {match.awayTeam?.logo ? (
+              <img src={match.awayTeam.logo} alt="" className="w-full h-full object-contain" />
+            ) : (
+              <span>{match.awayTeam?.shortName || 'AWY'}</span>
+            )}
           </div>
           <div className="truncate">
             <span className="block font-bold text-sm sm:text-base text-slate-100 group-hover:text-white transition-colors truncate">
-              {match.awayTeam.name}
+              {match.awayTeam?.name || 'Away Team'}
             </span>
             <span className="text-[11px] text-slate-400 font-mono">
-              {match.awayTeam.country} {match.awayTeam.flag}
+              {match.awayTeam?.country || ''} {match.awayTeam?.flag || ''}
             </span>
           </div>
         </div>
@@ -140,7 +148,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
       <div className="mt-3.5 pt-2.5 border-t border-slate-800/60 flex items-center justify-between text-xs text-slate-400">
         <div className="flex items-center gap-1.5 truncate">
           <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-          <span className="truncate">{match.stadium}, {match.city}</span>
+          <span className="truncate">{match.stadium || 'Stadium'}{match.city ? `, ${match.city}` : ''}</span>
         </div>
 
         {latestGoal && (

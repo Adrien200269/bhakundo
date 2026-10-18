@@ -1,4 +1,4 @@
-import type { Match, MatchEvent, MatchStats, CommentaryItem, Lineup, StandingTeam } from '../types/football';
+import type { Match, MatchEvent, MatchStats, CommentaryItem, Lineup, HeadToHeadMatch, StandingTeam, Player } from '../types/football';
 import { INITIAL_MATCHES } from '../data/mockData';
 
 // Public ESPN soccer leagues
@@ -19,7 +19,6 @@ export async function fetchLiveMatchesFromApi(targetDate?: string): Promise<Matc
     try {
       let url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${cfg.id}/scoreboard`;
       if (targetDate) {
-        // e.g. targetDate: "20261019" or "2026-10-19" -> "20261019"
         const cleanDate = targetDate.replace(/-/g, '');
         url += `?dates=${cleanDate}`;
       }
@@ -62,6 +61,9 @@ export async function fetchLiveMatchesFromApi(targetDate?: string): Promise<Matc
           return formStr.split('').slice(0, 5).map((f) => (f === 'W' || f === 'D' || f === 'L' ? f : 'W'));
         };
 
+        const homeTeamId = `team-${homeComp.id || homeComp.team?.id || 'home'}`;
+        const awayTeamId = `team-${awayComp.id || awayComp.team?.id || 'away'}`;
+
         const match: Match = {
           id: `espn-${ev.id}`,
           leagueId: cfg.key,
@@ -69,7 +71,7 @@ export async function fetchLiveMatchesFromApi(targetDate?: string): Promise<Matc
           leagueCountry: cfg.country,
           leagueFlag: cfg.flag,
           homeTeam: {
-            id: `team-${homeComp.id || homeComp.team?.id}`,
+            id: homeTeamId,
             name: homeComp.team?.displayName || homeComp.team?.name || 'Home Team',
             shortName: homeComp.team?.abbreviation || homeComp.team?.shortDisplayName || 'HME',
             logo: homeComp.team?.logo || '',
@@ -77,7 +79,7 @@ export async function fetchLiveMatchesFromApi(targetDate?: string): Promise<Matc
             form: parseForm(homeComp.form),
           },
           awayTeam: {
-            id: `team-${awayComp.id || awayComp.team?.id}`,
+            id: awayTeamId,
             name: awayComp.team?.displayName || awayComp.team?.name || 'Away Team',
             shortName: awayComp.team?.abbreviation || awayComp.team?.shortDisplayName || 'AWY',
             logo: awayComp.team?.logo || '',
@@ -109,6 +111,7 @@ export async function fetchLiveMatchesFromApi(targetDate?: string): Promise<Matc
             passAccuracy: [0, 0],
           },
           commentary: [],
+          h2h: [],
           isFavorite: false,
         };
 
@@ -132,7 +135,7 @@ export async function fetchLiveMatchesFromApi(targetDate?: string): Promise<Matc
   return [...nepaliMatches, ...matchesList];
 }
 
-// Fetch comprehensive game details (commentary, stats, lineups) when user clicks a match
+// Fetch comprehensive game details (commentary, stats, lineups, H2H) when user clicks a match
 export async function fetchLiveMatchSummary(match: Match): Promise<Match> {
   if (!match.id.startsWith('espn-')) {
     // Already has full mock data
@@ -152,30 +155,51 @@ export async function fetchLiveMatchSummary(match: Match): Promise<Match> {
     // 1. Parse Events (Goals, Cards, Subs)
     const events: MatchEvent[] = [];
     if (Array.isArray(data.keyEvents)) {
-      data.keyEvents.forEach((k: { text?: string; type?: { text?: string }; clock?: { displayValue?: string } }, index: number) => {
+      data.keyEvents.forEach((k: {
+        text?: string;
+        type?: { text?: string; type?: string };
+        clock?: { displayValue?: string };
+        team?: { id?: string; displayName?: string };
+        participants?: { athlete?: { displayName?: string } }[];
+        scoringPlay?: boolean;
+      }, index: number) => {
         const text = k.text || '';
         const min = parseInt(k.clock?.displayValue?.replace(/[^0-9]/g, '') || '0', 10);
+        const typeStr = (k.type?.type || k.type?.text || '').toLowerCase();
         let type: MatchEvent['type'] = 'GOAL';
 
-        if (text.toLowerCase().includes('yellow card')) {
+        if (typeStr.includes('yellow') || text.toLowerCase().includes('yellow card')) {
           type = 'YELLOW_CARD';
-        } else if (text.toLowerCase().includes('red card')) {
+        } else if (typeStr.includes('red') || text.toLowerCase().includes('red card')) {
           type = 'RED_CARD';
-        } else if (text.toLowerCase().includes('substitution')) {
+        } else if (typeStr.includes('sub') || text.toLowerCase().includes('substitution')) {
           type = 'SUBSTITUTION';
-        } else if (text.toLowerCase().includes('goal') || text.toLowerCase().includes('penalty')) {
+        } else if (k.scoringPlay || typeStr.includes('goal') || text.toLowerCase().includes('goal!')) {
           type = 'GOAL';
+        } else if (text.toLowerCase().includes('var')) {
+          type = 'VAR';
         } else {
           return;
         }
 
-        const isHome = text.includes(match.homeTeam.name) || text.includes(match.homeTeam.shortName);
+        // Determine home vs away accurately
+        let isHome = false;
+        if (k.team?.id) {
+          isHome = match.homeTeam.id.includes(k.team.id) || match.homeTeam.name.toLowerCase() === (k.team.displayName || '').toLowerCase();
+        } else {
+          isHome = text.toLowerCase().includes(match.homeTeam.name.toLowerCase()) || text.toLowerCase().includes(match.homeTeam.shortName.toLowerCase());
+        }
+
+        const scorerName = k.participants?.[0]?.athlete?.displayName || text.split('(')[0]?.trim() || 'Player';
+        const assistName = k.participants?.[1]?.athlete?.displayName || undefined;
+
         events.push({
           id: `ev-${eventId}-${index}`,
           minute: min || 1,
           type,
           teamId: isHome ? match.homeTeam.id : match.awayTeam.id,
-          playerName: text.split('(')[0]?.trim() || 'Player',
+          playerName: scorerName,
+          assistPlayerName: assistName,
           description: text,
         });
       });
@@ -183,20 +207,22 @@ export async function fetchLiveMatchSummary(match: Match): Promise<Match> {
 
     // 2. Parse Detailed Stats
     const boxscoreTeams = data.boxscore?.teams || [];
-    const homeBox = boxscoreTeams.find((b: { team: { displayName?: string } }) => b.team?.displayName === match.homeTeam.name) || boxscoreTeams[0];
-    const awayBox = boxscoreTeams.find((b: { team: { displayName?: string } }) => b.team?.displayName === match.awayTeam.name) || boxscoreTeams[1];
+    const homeBox = boxscoreTeams.find((b: { team?: { displayName?: string } }) => b.team?.displayName === match.homeTeam.name) || boxscoreTeams[0];
+    const awayBox = boxscoreTeams.find((b: { team?: { displayName?: string } }) => b.team?.displayName === match.awayTeam.name) || boxscoreTeams[1];
 
     const getStat = (box: { statistics?: { name: string; displayValue: string }[] } | undefined, statName: string, defaultVal = 0): number => {
       if (!box?.statistics) return defaultVal;
       const found = box.statistics.find((s) => s.name === statName);
       if (!found) return defaultVal;
-      return parseFloat(found.displayValue) || defaultVal;
+      const num = parseFloat(found.displayValue);
+      return isNaN(num) ? defaultVal : num;
     };
 
+    const hasBoxscore = boxscoreTeams.length > 0;
     const stats: MatchStats = {
       possession: [
-        getStat(homeBox, 'possessionPct', 50),
-        getStat(awayBox, 'possessionPct', 50),
+        getStat(homeBox, 'possessionPct', hasBoxscore ? 50 : 50),
+        getStat(awayBox, 'possessionPct', hasBoxscore ? 50 : 50),
       ],
       shots: [
         getStat(homeBox, 'totalShots', 0),
@@ -243,7 +269,7 @@ export async function fetchLiveMatchSummary(match: Match): Promise<Match> {
     // 3. Parse Commentary Plays
     const commentary: CommentaryItem[] = [];
     if (Array.isArray(data.commentary)) {
-      data.commentary.slice(0, 30).forEach((c: { text?: string; time?: { displayValue?: string } }, i: number) => {
+      data.commentary.slice(0, 35).forEach((c: { text?: string; time?: { displayValue?: string } }, i: number) => {
         const text = c.text || '';
         const min = parseInt(c.time?.displayValue?.replace(/[^0-9]/g, '') || '0', 10);
         const isGoal = text.toLowerCase().includes('goal');
@@ -259,37 +285,83 @@ export async function fetchLiveMatchSummary(match: Match): Promise<Match> {
       });
     }
 
-    // 4. Parse Lineups
-    const buildLineup = (rosterObj?: { roster?: { athlete?: { displayName: string; jersey: string; position?: { abbreviation: string } }; starter?: boolean }[] }): Lineup | undefined => {
-      if (!rosterObj?.roster) return undefined;
-      const starters = rosterObj.roster.filter((r) => r.starter);
-      const subs = rosterObj.roster.filter((r) => !r.starter);
+    // 4. Parse Lineups & Formations with Clean Tactical Grid Placement
+    const buildLineup = (rosterObj?: {
+      formation?: string;
+      roster?: {
+        athlete?: { displayName: string; jersey: string };
+        starter?: boolean;
+        position?: { abbreviation: string };
+        formationPlace?: string;
+      }[];
+    }): Lineup | undefined => {
+      if (!rosterObj?.roster || rosterObj.roster.length === 0) return undefined;
+      const rawStarters = rosterObj.roster.filter((r) => r.starter);
+      const rawSubs = rosterObj.roster.filter((r) => !r.starter);
+
+      if (rawStarters.length === 0) return undefined;
+
+      // Group starters by tactical rows for realistic 2D pitch coordinates
+      const gks: Player[] = [];
+      const defs: Player[] = [];
+      const mids: Player[] = [];
+      const fwds: Player[] = [];
+
+      rawStarters.forEach((p, idx) => {
+        const pos = (p.position?.abbreviation || 'MID').toUpperCase();
+        let normalizedPos: Player['position'] = 'MID';
+        if (pos === 'G' || pos === 'GK') normalizedPos = 'GK';
+        else if (pos === 'D' || pos === 'DEF') normalizedPos = 'DEF';
+        else if (pos === 'F' || pos === 'FWD' || pos === 'ST') normalizedPos = 'FWD';
+
+        const player: Player = {
+          id: `p-${idx}`,
+          name: p.athlete?.displayName || `Player ${idx + 1}`,
+          number: parseInt(p.athlete?.jersey || `${idx + 1}`, 10) || idx + 1,
+          position: normalizedPos,
+        };
+
+        if (normalizedPos === 'GK') gks.push(player);
+        else if (normalizedPos === 'DEF') defs.push(player);
+        else if (normalizedPos === 'FWD') fwds.push(player);
+        else mids.push(player);
+      });
+
+      // Spread players cleanly across each row without overlapping
+      const assignCoords = (row: Player[], yPos: number) => {
+        const count = row.length;
+        if (count === 0) return;
+        if (count === 1) {
+          row[0].x = 50;
+          row[0].y = yPos;
+          return;
+        }
+        const gap = 70 / (count + 1);
+        row.forEach((p, i) => {
+          p.x = Math.round(15 + gap * (i + 1));
+          p.y = yPos;
+        });
+      };
+
+      assignCoords(gks, 88);
+      assignCoords(defs, 70);
+      assignCoords(mids, 45);
+      assignCoords(fwds, 22);
+
+      const startingXI = [...gks, ...defs, ...mids, ...fwds];
+
+      const substitutes: Player[] = rawSubs.map((s, i) => ({
+        id: `sub-${i}`,
+        name: s.athlete?.displayName || `Sub ${i + 1}`,
+        number: parseInt(s.athlete?.jersey || `${i + 12}`, 10) || i + 12,
+        position: 'MID',
+      }));
 
       return {
-        formation: '4-3-3',
-        manager: 'Head Coach',
-        startingXI: starters.map((p, i) => {
-          const pos = p.athlete?.position?.abbreviation || 'MID';
-          let normalizedPos: 'GK' | 'DEF' | 'MID' | 'FWD' = 'MID';
-          if (pos === 'G' || pos === 'GK') normalizedPos = 'GK';
-          else if (pos === 'D') normalizedPos = 'DEF';
-          else if (pos === 'F') normalizedPos = 'FWD';
-
-          return {
-            id: `p-${i}`,
-            name: p.athlete?.displayName || `Player ${i + 1}`,
-            number: parseInt(p.athlete?.jersey || `${i + 1}`, 10) || i + 1,
-            position: normalizedPos,
-            x: 20 + (i % 4) * 20,
-            y: normalizedPos === 'GK' ? 88 : normalizedPos === 'DEF' ? 70 : normalizedPos === 'MID' ? 45 : 20,
-          };
-        }),
-        substitutes: subs.map((s, i) => ({
-          id: `sub-${i}`,
-          name: s.athlete?.displayName || `Sub ${i + 1}`,
-          number: parseInt(s.athlete?.jersey || `${i + 12}`, 10) || i + 12,
-          position: 'MID',
-        })),
+        formation: rosterObj.formation || '4-3-3',
+        manager: data.gameInfo?.coaches?.[0]?.displayName || 'Head Coach',
+        startingXI,
+        substitutes,
       };
     };
 
@@ -297,13 +369,38 @@ export async function fetchLiveMatchSummary(match: Match): Promise<Match> {
     const homeLineup = buildLineup(rosters[0]);
     const awayLineup = buildLineup(rosters[1]);
 
+    // 5. Parse Head-to-Head (H2H) Records from seasonseries
+    const h2hList: HeadToHeadMatch[] = [];
+    const seasonEvents = data.seasonseries?.[0]?.events || [];
+    if (Array.isArray(seasonEvents)) {
+      seasonEvents.forEach((se: {
+        date?: string;
+        competitionName?: string;
+        competitors?: { team?: { displayName?: string }; score?: string; homeAway?: string }[];
+      }) => {
+        const homeC = se.competitors?.find((c) => c.homeAway === 'home');
+        const awayC = se.competitors?.find((c) => c.homeAway === 'away');
+        if (homeC && awayC) {
+          h2hList.push({
+            date: se.date ? se.date.split('T')[0] : 'Past Match',
+            homeTeam: homeC.team?.displayName || 'Home Team',
+            awayTeam: awayC.team?.displayName || 'Away Team',
+            homeScore: parseInt(homeC.score || '0', 10) || 0,
+            awayScore: parseInt(awayC.score || '0', 10) || 0,
+            competition: se.competitionName || match.leagueName,
+          });
+        }
+      });
+    }
+
     return {
       ...match,
-      events: events.length > 0 ? events : match.events,
+      events: events.length > 0 ? events : (match.events || []),
       stats,
-      commentary: commentary.length > 0 ? commentary : match.commentary,
+      commentary: commentary.length > 0 ? commentary : (match.commentary || []),
       homeLineup: homeLineup || match.homeLineup,
       awayLineup: awayLineup || match.awayLineup,
+      h2h: h2hList.length > 0 ? h2hList : (match.h2h || []),
       attendance: data.gameInfo?.attendance ? `${data.gameInfo.attendance.toLocaleString()}` : match.attendance,
       referee: data.gameInfo?.officials?.[0]?.displayName || match.referee,
       stadium: data.gameInfo?.venue?.fullName || match.stadium,

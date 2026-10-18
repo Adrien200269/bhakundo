@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { Match } from '../types/football';
-import { X, MapPin, User, Users, Clock, Activity, Shield, MessageSquare, History, Sparkles } from 'lucide-react';
+import { X, MapPin, User, Users, Clock, Activity, Shield, MessageSquare, History, Sparkles, RefreshCw } from 'lucide-react';
 import NepaliFlag from './NepaliFlag';
 import LineupPitch from './LineupPitch';
 import type { Language } from '../utils/translations';
@@ -11,6 +11,7 @@ interface MatchDetailModalProps {
   match: Match | null;
   onClose: () => void;
   language: Language;
+  isLoading?: boolean;
   onSimulateGoal?: (matchId: string) => void;
 }
 
@@ -20,6 +21,7 @@ export const MatchDetailModal: React.FC<MatchDetailModalProps> = ({
   match,
   onClose,
   language,
+  isLoading = false,
   onSimulateGoal,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('timeline');
@@ -29,18 +31,49 @@ export const MatchDetailModal: React.FC<MatchDetailModalProps> = ({
   const t = translations[language];
   const isLive = match.status === 'LIVE' || match.status === 'HT';
 
-  const stats = match.stats;
+  const events = match.events || [];
+  const commentary = match.commentary || [];
+  const h2h = match.h2h || [];
 
-  // Render comparative stat bar
+  const defaultStats = {
+    possession: [50, 50] as [number, number],
+    shots: [0, 0] as [number, number],
+    shotsOnTarget: [0, 0] as [number, number],
+    xG: [0, 0] as [number, number],
+    corners: [0, 0] as [number, number],
+    fouls: [0, 0] as [number, number],
+    yellowCards: [0, 0] as [number, number],
+    redCards: [0, 0] as [number, number],
+    offsides: [0, 0] as [number, number],
+    passes: [0, 0] as [number, number],
+    passAccuracy: [0, 0] as [number, number],
+  };
+
+  const stats = match.stats || defaultStats;
+
+  // Safe comparative stat bar with 50/50 balance when both zero
   const renderStatBar = (
     label: string,
-    homeVal: number,
-    awayVal: number,
+    homeValRaw: number | undefined,
+    awayValRaw: number | undefined,
     isPercentage = false
   ) => {
-    const total = homeVal + awayVal || 1;
-    const homePercent = isPercentage ? homeVal : Math.round((homeVal / total) * 100);
-    const awayPercent = isPercentage ? awayVal : 100 - homePercent;
+    const homeVal = typeof homeValRaw === 'number' && !isNaN(homeValRaw) ? homeValRaw : 0;
+    const awayVal = typeof awayValRaw === 'number' && !isNaN(awayValRaw) ? awayValRaw : 0;
+
+    let homePercent = 50;
+    let awayPercent = 50;
+
+    if (isPercentage) {
+      homePercent = homeVal;
+      awayPercent = awayVal || (100 - homePercent);
+    } else {
+      const sum = homeVal + awayVal;
+      if (sum > 0) {
+        homePercent = Math.round((homeVal / sum) * 100);
+        awayPercent = 100 - homePercent;
+      }
+    }
 
     return (
       <div className="space-y-1.5">
@@ -52,11 +85,19 @@ export const MatchDetailModal: React.FC<MatchDetailModalProps> = ({
         <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden flex">
           <div
             style={{ width: `${homePercent}%` }}
-            className="h-full bg-gradient-to-r from-red-600 to-rose-500 transition-all duration-300"
+            className={`h-full transition-all duration-300 ${
+              homeVal === 0 && awayVal === 0 && !isPercentage
+                ? 'bg-slate-700'
+                : 'bg-gradient-to-r from-red-600 to-rose-500'
+            }`}
           />
           <div
             style={{ width: `${awayPercent}%` }}
-            className="h-full bg-gradient-to-l from-blue-600 to-cyan-500 transition-all duration-300"
+            className={`h-full transition-all duration-300 ${
+              homeVal === 0 && awayVal === 0 && !isPercentage
+                ? 'bg-slate-700'
+                : 'bg-gradient-to-l from-blue-600 to-cyan-500'
+            }`}
           />
         </div>
       </div>
@@ -93,14 +134,18 @@ export const MatchDetailModal: React.FC<MatchDetailModalProps> = ({
           <div className="grid grid-cols-12 items-center gap-3">
             {/* Home Team */}
             <div className="col-span-5 flex flex-col items-center sm:items-end text-center sm:text-right">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-red-500/40 flex items-center justify-center font-black text-xl text-white shadow-xl mb-2">
-                {match.homeTeam.shortName}
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-red-500/40 flex items-center justify-center font-black text-xl text-white shadow-xl mb-2 overflow-hidden p-1">
+                {match.homeTeam?.logo ? (
+                  <img src={match.homeTeam.logo} alt="" className="w-full h-full object-contain" />
+                ) : (
+                  <span>{match.homeTeam?.shortName || 'HME'}</span>
+                )}
               </div>
               <h3 className="font-extrabold text-base sm:text-lg text-white">
-                {match.homeTeam.name}
+                {match.homeTeam?.name || 'Home Team'}
               </h3>
               <span className="text-xs text-slate-400 font-mono">
-                {match.homeTeam.country} {match.homeTeam.flag}
+                {match.homeTeam?.country || ''} {match.homeTeam?.flag || ''}
               </span>
             </div>
 
@@ -114,9 +159,9 @@ export const MatchDetailModal: React.FC<MatchDetailModalProps> = ({
               ) : (
                 <div className="flex flex-col items-center">
                   <div className="text-3xl sm:text-5xl font-black font-mono text-white tracking-wider flex items-center gap-1.5">
-                    <span className="text-red-400">{match.homeScore}</span>
+                    <span className="text-red-400">{match.homeScore ?? 0}</span>
                     <span className="text-slate-500 text-2xl sm:text-3xl">:</span>
-                    <span className="text-blue-400">{match.awayScore}</span>
+                    <span className="text-blue-400">{match.awayScore ?? 0}</span>
                   </div>
                   
                   {/* Status Indicator */}
@@ -144,14 +189,18 @@ export const MatchDetailModal: React.FC<MatchDetailModalProps> = ({
 
             {/* Away Team */}
             <div className="col-span-5 flex flex-col items-center sm:items-start text-center sm:text-left">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-blue-500/40 flex items-center justify-center font-black text-xl text-white shadow-xl mb-2">
-                {match.awayTeam.shortName}
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-blue-500/40 flex items-center justify-center font-black text-xl text-white shadow-xl mb-2 overflow-hidden p-1">
+                {match.awayTeam?.logo ? (
+                  <img src={match.awayTeam.logo} alt="" className="w-full h-full object-contain" />
+                ) : (
+                  <span>{match.awayTeam?.shortName || 'AWY'}</span>
+                )}
               </div>
               <h3 className="font-extrabold text-base sm:text-lg text-white">
-                {match.awayTeam.name}
+                {match.awayTeam?.name || 'Away Team'}
               </h3>
               <span className="text-xs text-slate-400 font-mono">
-                {match.awayTeam.country} {match.awayTeam.flag}
+                {match.awayTeam?.country || ''} {match.awayTeam?.flag || ''}
               </span>
             </div>
           </div>
@@ -160,7 +209,7 @@ export const MatchDetailModal: React.FC<MatchDetailModalProps> = ({
           <div className="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-center gap-4 text-xs text-slate-400">
             <div className="flex items-center gap-1.5">
               <MapPin className="w-3.5 h-3.5 text-slate-400" />
-              <span>{match.stadium}, {match.city}</span>
+              <span>{match.stadium || 'Stadium'}{match.city ? `, ${match.city}` : ''}</span>
             </div>
             {match.referee && (
               <div className="flex items-center gap-1.5">
@@ -176,6 +225,14 @@ export const MatchDetailModal: React.FC<MatchDetailModalProps> = ({
             )}
           </div>
         </div>
+
+        {/* Loading Live Details Banner */}
+        {isLoading && (
+          <div className="bg-red-950/40 border-b border-red-500/20 px-4 py-2 flex items-center justify-center gap-2 text-xs text-red-300 font-medium">
+            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            <span>Updating live match events, rosters & statistics...</span>
+          </div>
+        )}
 
         {/* Modal Navigation Tabs */}
         <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950/60 px-4 sm:px-6 overflow-x-auto scrollbar-none">
@@ -227,14 +284,20 @@ export const MatchDetailModal: React.FC<MatchDetailModalProps> = ({
           {/* TAB 1: TIMELINE */}
           {activeTab === 'timeline' && (
             <div className="space-y-3">
-              {match.events.length === 0 ? (
-                <div className="text-center py-8 text-slate-400 text-sm">
-                  No match events recorded yet. Kickoff awaits!
+              {events.length === 0 ? (
+                <div className="text-center py-12 bg-slate-950/40 rounded-2xl border border-slate-800 p-6 space-y-2">
+                  <Clock className="w-6 h-6 text-slate-500 mx-auto" />
+                  <p className="font-semibold text-slate-300 text-sm">No Events Recorded Yet</p>
+                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                    {match.status === 'UPCOMING'
+                      ? 'Events will appear here in real time as the match kicks off.'
+                      : 'No key incident cards, goals, or substitutions logged for this fixture.'}
+                  </p>
                 </div>
               ) : (
                 <div className="relative pl-6 space-y-4 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-800">
-                  {match.events.map((ev) => {
-                    const isHomeTeam = ev.teamId === match.homeTeam.id;
+                  {events.map((ev) => {
+                    const isHomeTeam = ev.teamId === match.homeTeam?.id;
                     const team = isHomeTeam ? match.homeTeam : match.awayTeam;
 
                     return (
@@ -263,9 +326,9 @@ export const MatchDetailModal: React.FC<MatchDetailModalProps> = ({
                               {ev.type === 'RED_CARD' && <span>🟥 Red Card</span>}
                               {ev.type === 'SUBSTITUTION' && <span>🔄 Substitution</span>}
                               {ev.type === 'VAR' && <span>🖥️ VAR Decision</span>}
-                              <span className="text-slate-300 font-semibold">{ev.playerName}</span>
+                              <span className="text-slate-200 font-semibold">{ev.playerName || 'Player'}</span>
                             </span>
-                            <span className="text-slate-400 font-mono text-[11px]">{team.name}</span>
+                            <span className="text-slate-400 font-mono text-[11px]">{team?.name || ''}</span>
                           </div>
 
                           {ev.assistPlayerName && (
@@ -295,14 +358,14 @@ export const MatchDetailModal: React.FC<MatchDetailModalProps> = ({
           {/* TAB 2: STATS */}
           {activeTab === 'stats' && (
             <div className="space-y-4 bg-slate-950/80 p-5 rounded-2xl border border-slate-800">
-              {renderStatBar(t.possession, stats.possession[0], stats.possession[1], true)}
-              {renderStatBar(t.totalShots, stats.shots[0], stats.shots[1])}
-              {renderStatBar(t.shotsOnTarget, stats.shotsOnTarget[0], stats.shotsOnTarget[1])}
-              {renderStatBar(t.expectedGoals, stats.xG[0], stats.xG[1])}
-              {renderStatBar(t.corners, stats.corners[0], stats.corners[1])}
-              {renderStatBar(t.fouls, stats.fouls[0], stats.fouls[1])}
-              {renderStatBar(t.yellowCards, stats.yellowCards[0], stats.yellowCards[1])}
-              {renderStatBar(t.passAccuracy, stats.passAccuracy[0], stats.passAccuracy[1], true)}
+              {renderStatBar(t.possession, stats.possession?.[0] ?? 50, stats.possession?.[1] ?? 50, true)}
+              {renderStatBar(t.totalShots, stats.shots?.[0] ?? 0, stats.shots?.[1] ?? 0)}
+              {renderStatBar(t.shotsOnTarget, stats.shotsOnTarget?.[0] ?? 0, stats.shotsOnTarget?.[1] ?? 0)}
+              {renderStatBar(t.expectedGoals, stats.xG?.[0] ?? 0, stats.xG?.[1] ?? 0)}
+              {renderStatBar(t.corners, stats.corners?.[0] ?? 0, stats.corners?.[1] ?? 0)}
+              {renderStatBar(t.fouls, stats.fouls?.[0] ?? 0, stats.fouls?.[1] ?? 0)}
+              {renderStatBar(t.yellowCards, stats.yellowCards?.[0] ?? 0, stats.yellowCards?.[1] ?? 0)}
+              {renderStatBar(t.passAccuracy, stats.passAccuracy?.[0] ?? 80, stats.passAccuracy?.[1] ?? 80, true)}
             </div>
           )}
 
@@ -313,10 +376,10 @@ export const MatchDetailModal: React.FC<MatchDetailModalProps> = ({
           {activeTab === 'h2h' && (
             <div className="space-y-3">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Recent Meetings Between Teams
+                Recent Meetings Between Teams ({h2h.length})
               </h4>
-              {match.h2h && match.h2h.length > 0 ? (
-                match.h2h.map((h, i) => (
+              {h2h.length > 0 ? (
+                h2h.map((h, i) => (
                   <div
                     key={i}
                     className="p-3 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-between text-xs"
@@ -334,7 +397,13 @@ export const MatchDetailModal: React.FC<MatchDetailModalProps> = ({
                   </div>
                 ))
               ) : (
-                <p className="text-slate-400 text-xs">No prior head-to-head records found.</p>
+                <div className="text-center py-10 bg-slate-950/40 rounded-2xl border border-slate-800 p-6 space-y-2">
+                  <History className="w-6 h-6 text-slate-500 mx-auto" />
+                  <p className="font-semibold text-slate-300 text-sm">No Prior H2H Matches Found</p>
+                  <p className="text-xs text-slate-400">
+                    These clubs have no recent historical meetings on record.
+                  </p>
+                </div>
               )}
             </div>
           )}
@@ -342,8 +411,8 @@ export const MatchDetailModal: React.FC<MatchDetailModalProps> = ({
           {/* TAB 5: COMMENTARY */}
           {activeTab === 'commentary' && (
             <div className="space-y-2.5">
-              {match.commentary && match.commentary.length > 0 ? (
-                match.commentary.map((c) => (
+              {commentary.length > 0 ? (
+                commentary.map((c) => (
                   <div
                     key={c.id}
                     className={`p-3 rounded-xl border text-xs flex items-start gap-3 ${
@@ -355,13 +424,19 @@ export const MatchDetailModal: React.FC<MatchDetailModalProps> = ({
                     }`}
                   >
                     <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono font-bold text-slate-400 shrink-0">
-                      {c.minute}'
+                      {c.minute ? `${c.minute}'` : '•'}
                     </span>
                     <p className="leading-relaxed">{c.text}</p>
                   </div>
                 ))
               ) : (
-                <p className="text-slate-400 text-xs">Commentary starts when match kicks off.</p>
+                <div className="text-center py-10 bg-slate-950/40 rounded-2xl border border-slate-800 p-6 space-y-2">
+                  <MessageSquare className="w-6 h-6 text-slate-500 mx-auto" />
+                  <p className="font-semibold text-slate-300 text-sm">Live Commentary Awaiting Kickoff</p>
+                  <p className="text-xs text-slate-400">
+                    Minute-by-minute text commentary will start streaming when the referee blows the whistle.
+                  </p>
+                </div>
               )}
             </div>
           )}

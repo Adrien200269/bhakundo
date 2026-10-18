@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { Match } from '../types/football';
-import { UserCheck } from 'lucide-react';
+import { UserCheck, Shield } from 'lucide-react';
 
 interface LineupPitchProps {
   match: Match;
@@ -11,10 +11,17 @@ export const LineupPitch: React.FC<LineupPitchProps> = ({ match }) => {
 
   const currentLineup = selectedTeam === 'home' ? match.homeLineup : match.awayLineup;
 
-  if (!currentLineup) {
+  const startingXI = currentLineup?.startingXI || [];
+  const substitutes = currentLineup?.substitutes || [];
+
+  if (!currentLineup || startingXI.length === 0) {
     return (
-      <div className="p-8 text-center text-slate-400 bg-slate-950/60 rounded-2xl border border-slate-800">
-        <p className="font-medium">Lineups will be announced 45 minutes before kickoff.</p>
+      <div className="p-8 text-center text-slate-300 bg-slate-950/60 rounded-2xl border border-slate-800 space-y-3">
+        <Shield className="w-8 h-8 text-slate-500 mx-auto" />
+        <h4 className="font-bold text-white text-sm">Lineups Not Announced Yet</h4>
+        <p className="text-xs text-slate-400 max-w-sm mx-auto">
+          Official starting formations and substitutes are typically confirmed by coaches 45–60 minutes before kickoff.
+        </p>
       </div>
     );
   }
@@ -23,32 +30,32 @@ export const LineupPitch: React.FC<LineupPitchProps> = ({ match }) => {
     <div className="space-y-4">
       {/* Team Toggle Selector */}
       <div className="flex items-center justify-between gap-3 bg-slate-950/80 p-2 rounded-xl border border-slate-800">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 overflow-x-auto">
           <button
             onClick={() => setSelectedTeam('home')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               selectedTeam === 'home'
                 ? 'bg-red-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            {match.homeTeam.name} ({match.homeLineup?.formation || 'XI'})
+            {match.homeTeam?.name || 'Home'} ({match.homeLineup?.formation || 'XI'})
           </button>
           <button
             onClick={() => setSelectedTeam('away')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               selectedTeam === 'away'
                 ? 'bg-blue-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            {match.awayTeam.name} ({match.awayLineup?.formation || 'XI'})
+            {match.awayTeam?.name || 'Away'} ({match.awayLineup?.formation || 'XI'})
           </button>
         </div>
 
-        <div className="text-xs text-slate-400 font-medium">
+        <div className="text-xs text-slate-400 font-medium shrink-0 hidden sm:block">
           <span className="text-slate-500 mr-1">Coach:</span>
-          <span className="text-slate-200 font-semibold">{currentLineup.manager}</span>
+          <span className="text-slate-200 font-semibold">{currentLineup.manager || 'Head Coach'}</span>
         </div>
       </div>
 
@@ -92,7 +99,7 @@ export const LineupPitch: React.FC<LineupPitchProps> = ({ match }) => {
 
         {/* Tactical Player Nodes */}
         <div className="relative w-full h-full">
-          {currentLineup.startingXI.map((player) => {
+          {startingXI.map((player) => {
             const posX = player.x ?? 50;
             const posY = player.y ?? 50;
 
@@ -136,7 +143,7 @@ export const LineupPitch: React.FC<LineupPitchProps> = ({ match }) => {
 
                 {/* Player Name Pill */}
                 <span className="mt-1 px-1.5 py-0.5 rounded bg-slate-950/80 backdrop-blur-sm text-[10px] sm:text-xs font-semibold text-slate-100 whitespace-nowrap shadow-md border border-slate-800 group-hover:border-slate-500 transition-colors">
-                  {player.name.split(' ').pop()}
+                  {(player.name || 'Player').split(' ').pop()}
                 </span>
               </div>
             );
@@ -145,25 +152,27 @@ export const LineupPitch: React.FC<LineupPitchProps> = ({ match }) => {
       </div>
 
       {/* Substitutes & Bench Section */}
-      <div className="bg-slate-950/80 rounded-xl p-3 border border-slate-800">
-        <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
-          <UserCheck className="w-3.5 h-3.5 text-slate-400" />
-          <span>Substitutes Bench</span>
-        </h5>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {currentLineup.substitutes.map((sub) => (
-            <div
-              key={sub.id}
-              className="flex items-center gap-2 p-2 bg-slate-900/90 rounded-lg border border-slate-800/80 text-xs"
-            >
-              <span className="w-5 h-5 rounded-md bg-slate-800 flex items-center justify-center font-mono font-bold text-slate-300 text-[11px]">
-                {sub.number}
-              </span>
-              <span className="truncate text-slate-200 font-medium">{sub.name}</span>
-            </div>
-          ))}
+      {substitutes.length > 0 && (
+        <div className="bg-slate-950/80 rounded-xl p-3 border border-slate-800">
+          <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+            <UserCheck className="w-3.5 h-3.5 text-slate-400" />
+            <span>Substitutes Bench ({substitutes.length})</span>
+          </h5>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {substitutes.map((sub) => (
+              <div
+                key={sub.id}
+                className="flex items-center gap-2 p-2 bg-slate-900/90 rounded-lg border border-slate-800/80 text-xs"
+              >
+                <span className="w-5 h-5 rounded-md bg-slate-800 flex items-center justify-center font-mono font-bold text-slate-300 text-[11px] shrink-0">
+                  {sub.number}
+                </span>
+                <span className="truncate text-slate-200 font-medium">{sub.name}</span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

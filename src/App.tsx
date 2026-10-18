@@ -32,6 +32,7 @@ export const App: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [goalAlert, setGoalAlert] = useState<{ match: Match; event: MatchEvent } | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoadingMatchDetails, setIsLoadingMatchDetails] = useState(false);
 
   const t = translations[language];
 
@@ -100,9 +101,15 @@ export const App: React.FC = () => {
 
   const handleSelectMatch = (match: Match) => {
     setSelectedMatch(match);
-    liveEngine.enrichMatch(match).then((enriched) => {
-      setSelectedMatch(enriched);
-    });
+    setIsLoadingMatchDetails(true);
+    liveEngine
+      .enrichMatch(match)
+      .then((enriched) => {
+        setSelectedMatch(enriched);
+      })
+      .finally(() => {
+        setIsLoadingMatchDetails(false);
+      });
   };
 
   // Live match count for badge
@@ -117,11 +124,11 @@ export const App: React.FC = () => {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesQuery =
-          match.homeTeam.name.toLowerCase().includes(q) ||
-          match.awayTeam.name.toLowerCase().includes(q) ||
-          match.leagueName.toLowerCase().includes(q) ||
-          match.stadium.toLowerCase().includes(q) ||
-          match.events.some((e) => e.playerName.toLowerCase().includes(q));
+          (match.homeTeam?.name || '').toLowerCase().includes(q) ||
+          (match.awayTeam?.name || '').toLowerCase().includes(q) ||
+          (match.leagueName || '').toLowerCase().includes(q) ||
+          (match.stadium || '').toLowerCase().includes(q) ||
+          (match.events || []).some((e) => (e.playerName || '').toLowerCase().includes(q));
         if (!matchesQuery) return false;
       }
 
@@ -323,6 +330,7 @@ export const App: React.FC = () => {
         match={selectedMatch}
         onClose={() => setSelectedMatch(null)}
         language={language}
+        isLoading={isLoadingMatchDetails}
         onSimulateGoal={handleSimulateGoal}
       />
 
