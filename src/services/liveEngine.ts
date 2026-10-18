@@ -1,6 +1,7 @@
 import type { Match, MatchEvent, CommentaryItem } from '../types/football';
 import { INITIAL_MATCHES } from '../data/mockData';
 import { soundEffects } from '../utils/soundEffects';
+import { fetchLiveMatchesFromApi, fetchLiveMatchSummary } from './liveFootballApi';
 import confetti from 'canvas-confetti';
 
 export type GoalCallback = (match: Match, event: MatchEvent) => void;
@@ -11,17 +12,53 @@ class LiveFootballEngine {
   private listeners: MatchesUpdateCallback[] = [];
   private goalListeners: GoalCallback[] = [];
   private intervalId: number | null = null;
+  private apiPollIntervalId: number | null = null;
   public simulationSpeed: 'paused' | 'normal' | 'fast' = 'normal';
   public apiKey: string = '';
   public externalApiProvider: 'none' | 'football-data' = 'none';
+  public isLiveFeedConnected: boolean = false;
+  public lastUpdatedTime: string = 'Just now';
 
   constructor() {
+    // Start with initial seed, then immediately hydrate with live worldwide data
     this.matches = JSON.parse(JSON.stringify(INITIAL_MATCHES));
+    this.refreshLiveMatches();
     this.startEngine();
+    this.startApiPolling();
   }
 
   public getMatches(): Match[] {
     return this.matches;
+  }
+
+  public async refreshLiveMatches(targetDate?: string): Promise<void> {
+    try {
+      const liveMatches = await fetchLiveMatchesFromApi(targetDate);
+      if (liveMatches && liveMatches.length > 0) {
+        // Merge favorites state
+        const favSet = new Set(this.matches.filter((m) => m.isFavorite).map((m) => m.id));
+        this.matches = liveMatches.map((m) => ({
+          ...m,
+          isFavorite: favSet.has(m.id) || m.isFavorite,
+        }));
+        this.isLiveFeedConnected = true;
+        this.lastUpdatedTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        this.notify();
+      }
+    } catch (err) {
+      console.warn('Could not refresh live matches from API, using cached matches:', err);
+    }
+  }
+
+  public async enrichMatch(match: Match): Promise<Match> {
+    try {
+      const enriched = await fetchLiveMatchSummary(match);
+      this.matches = this.matches.map((m) => (m.id === enriched.id ? enriched : m));
+      this.notify();
+      return enriched;
+    } catch {
+      return match;
+    }
   }
 
   public subscribe(callback: MatchesUpdateCallback): () => void {
@@ -136,6 +173,16 @@ class LiveFootballEngine {
     }
   }
 
+  private startApiPolling() {
+    if (this.apiPollIntervalId) {
+      clearInterval(this.apiPollIntervalId);
+    }
+    // Poll API every 45 seconds for live real-world match updates
+    this.apiPollIntervalId = window.setInterval(() => {
+      this.refreshLiveMatches();
+    }, 45000);
+  }
+
   private startEngine() {
     if (this.intervalId) {
       clearInterval(this.intervalId);
@@ -167,15 +214,6 @@ class LiveFootballEngine {
           ...match,
           minute: 90,
           status: 'FINISHED',
-          commentary: [
-            {
-              id: `ft-${Date.now()}`,
-              minute: 90,
-              type: 'normal',
-              text: 'Full time! The referee blows the final whistle to end this dramatic match.',
-            },
-            ...(match.commentary || []),
-          ],
         };
       }
 
@@ -185,101 +223,13 @@ class LiveFootballEngine {
           ...match,
           minute: 45,
           status: 'HT',
-          commentary: [
-            {
-              id: `ht-${Date.now()}`,
-              minute: 45,
-              type: 'normal',
-              text: 'Half-time whistle. Players head to the tunnel for team talks.',
-            },
-            ...(match.commentary || []),
-          ],
         };
       }
 
-      // Random in-match events (~12% chance per minute tick)
-      const eventRoll = Math.random();
-      let updatedMatch = { ...match, minute: nextMinute };
-
-      if (eventRoll < 0.04) {
-        // GOAL EVENT!
-        const isHome = Math.random() > 0.48;
-        const team = isHome ? match.homeTeam : match.awayTeam;
-        const playerPool = isHome
-          ? match.homeLineup?.startingXI.filter((p) => p.position === 'FWD' || p.position === 'MID') || []
-          : match.awayLineup?.startingXI.filter((p) => p.position === 'FWD' || p.position === 'MID') || [];
-        const scorer = playerPool.length > 0 ? playerPool[Math.floor(Math.random() * playerPool.length)].name : `${team.shortName} Number 9`;
-
-        const newGoalEvent: MatchEvent = {
-          id: `goal-${Date.now()}`,
-          minute: nextMinute,
-          type: 'GOAL',
-          teamId: team.id,
-          playerName: scorer,
-          description: `GOAL! ${scorer} finishes with ruthless composure!`,
-        };
-
-        const newGoalComm: CommentaryItem = {
-          id: `comm-g-${Date.now()}`,
-          minute: nextMinute,
-          type: 'goal',
-          text: `GOAAALLL! Fantastic strike by ${scorer}! The crowd erupts!`,
-          teamId: team.id,
-        };
-
-        updatedMatch.homeScore = isHome ? match.homeScore + 1 : match.homeScore;
-        updatedMatch.awayScore = !isHome ? match.awayScore + 1 : match.awayScore;
-        updatedMatch.events = [newGoalEvent, ...match.events];
-        updatedMatch.commentary = [newGoalComm, ...(match.commentary || [])];
-
-        // Trigger goal celebration
-        soundEffects.playGoalCheer();
-        this.fireConfetti();
-        this.goalListeners.forEach((cb) => cb(updatedMatch, newGoalEvent));
-      } else if (eventRoll < 0.08) {
-        // YELLOW CARD EVENT
-        const isHome = Math.random() > 0.5;
-        const team = isHome ? match.homeTeam : match.awayTeam;
-        const cardEvent: MatchEvent = {
-          id: `card-${Date.now()}`,
-          minute: nextMinute,
-          type: 'YELLOW_CARD',
-          teamId: team.id,
-          playerName: `${team.shortName} Defender`,
-          description: 'Yellow card shown for reckless challenge.',
-        };
-        const cardComm: CommentaryItem = {
-          id: `comm-c-${Date.now()}`,
-          minute: nextMinute,
-          type: 'card',
-          text: `Yellow card awarded to ${team.name} following a late tackle.`,
-          teamId: team.id,
-        };
-        updatedMatch.events = [cardEvent, ...match.events];
-        updatedMatch.commentary = [cardComm, ...(match.commentary || [])];
-        soundEffects.playWhistle();
-      } else if (eventRoll < 0.13) {
-        // DANGEROUS CHANCE / SHOT
-        const isHome = Math.random() > 0.5;
-        const team = isHome ? match.homeTeam : match.awayTeam;
-        const chanceComm: CommentaryItem = {
-          id: `comm-ch-${Date.now()}`,
-          minute: nextMinute,
-          type: 'chance',
-          text: `Close! ${team.name} launch a fast break and the shot rattles the side netting!`,
-          teamId: team.id,
-        };
-        const newStats = { ...match.stats };
-        if (isHome) {
-          newStats.shots[0] += 1;
-        } else {
-          newStats.shots[1] += 1;
-        }
-        updatedMatch.stats = newStats;
-        updatedMatch.commentary = [chanceComm, ...(match.commentary || [])];
-      }
-
-      return updatedMatch;
+      return {
+        ...match,
+        minute: nextMinute,
+      };
     });
 
     if (hasChanges) {

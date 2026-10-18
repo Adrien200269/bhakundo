@@ -15,7 +15,7 @@ import { liveEngine } from './services/liveEngine';
 import { soundEffects } from './utils/soundEffects';
 import type { Language } from './utils/translations';
 import { translations } from './utils/translations';
-import { Trophy, Award, Radio, Settings, Shield } from 'lucide-react';
+import { Trophy, Award, Radio, Settings, Shield, RefreshCw } from 'lucide-react';
 
 type MainView = 'matches' | 'standings' | 'scorers';
 
@@ -31,6 +31,7 @@ export const App: React.FC = () => {
   const [simulationSpeed, setSimulationSpeed] = useState<'paused' | 'normal' | 'fast'>('normal');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [goalAlert, setGoalAlert] = useState<{ match: Match; event: MatchEvent } | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const t = translations[language];
 
@@ -74,6 +75,34 @@ export const App: React.FC = () => {
 
   const handleSimulateGoal = (matchId: string) => {
     liveEngine.triggerTestGoal(matchId);
+  };
+
+  const handleDateChange = (dateOffset: 'yesterday' | 'today' | 'tomorrow') => {
+    setActiveDateTab(dateOffset);
+    let targetDateObj = new Date();
+    if (dateOffset === 'yesterday') {
+      targetDateObj = new Date(Date.now() - 86400000);
+    } else if (dateOffset === 'tomorrow') {
+      targetDateObj = new Date(Date.now() + 86400000);
+    }
+    const targetDateStr = targetDateObj.toISOString().split('T')[0].replace(/-/g, '');
+    setIsRefreshing(true);
+    liveEngine.refreshLiveMatches(targetDateStr).finally(() => setIsRefreshing(false));
+  };
+
+  const handleManualRefresh = () => {
+    setIsRefreshing(true);
+    soundEffects.playClick();
+    liveEngine.refreshLiveMatches().finally(() => {
+      setTimeout(() => setIsRefreshing(false), 600);
+    });
+  };
+
+  const handleSelectMatch = (match: Match) => {
+    setSelectedMatch(match);
+    liveEngine.enrichMatch(match).then((enriched) => {
+      setSelectedMatch(enriched);
+    });
   };
 
   // Live match count for badge
@@ -192,17 +221,32 @@ export const App: React.FC = () => {
               </button>
             </div>
 
-            {/* Settings button */}
-            <button
-              onClick={() => {
-                setIsSettingsOpen(true);
-                soundEffects.playClick();
-              }}
-              className="p-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition-all cursor-pointer"
-              title="Settings & Data Engine"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
+            {/* Live API Feed Status & Manual Refresh */}
+            <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/40 border border-emerald-500/20 text-emerald-400 text-[11px] font-medium">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                <span>Live Feed Active</span>
+              </div>
+
+              <button
+                onClick={handleManualRefresh}
+                className="p-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition-all cursor-pointer"
+                title="Refresh live matches from API"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-red-400' : ''}`} />
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsSettingsOpen(true);
+                  soundEffects.playClick();
+                }}
+                className="p-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition-all cursor-pointer"
+                title="Settings & Data Engine"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </nav>
@@ -220,7 +264,7 @@ export const App: React.FC = () => {
               language={language}
               liveCount={liveCount}
               selectedDate="2026-10-19"
-              onDateChange={setActiveDateTab}
+              onDateChange={handleDateChange}
               activeDateTab={activeDateTab}
               simulationSpeed={simulationSpeed}
               onSpeedChange={handleSpeedChange}
@@ -239,7 +283,7 @@ export const App: React.FC = () => {
                     setActiveFilter('all');
                     setSearchQuery('');
                   }}
-                  className="px-4 py-2 rounded-xl bg-slate-800 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition-colors"
+                  className="px-4 py-2 rounded-xl bg-slate-800 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition-colors cursor-pointer"
                 >
                   Reset Filters
                 </button>
@@ -250,7 +294,7 @@ export const App: React.FC = () => {
                   <MatchCard
                     key={match.id}
                     match={match}
-                    onSelect={setSelectedMatch}
+                    onSelect={handleSelectMatch}
                     onToggleFavorite={handleToggleFavorite}
                   />
                 ))}
@@ -286,7 +330,7 @@ export const App: React.FC = () => {
       <GoalAlertToast
         goalAlert={goalAlert}
         onDismiss={() => setGoalAlert(null)}
-        onSelectMatch={setSelectedMatch}
+        onSelectMatch={handleSelectMatch}
       />
 
       {/* 7. Settings & API Modal */}
