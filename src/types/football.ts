@@ -10,6 +10,7 @@ export interface Player {
   isCaptain?: boolean;
   yellowCards?: number;
   redCard?: boolean;
+  redCards?: number;
   goals?: number;
   subbed?: boolean;
 }

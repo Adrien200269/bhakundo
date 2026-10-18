@@ -109,7 +109,7 @@ export const MatchDetailModal: React.FC<MatchDetailModalProps> = ({
       <div className="relative w-full max-w-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col text-slate-800 dark:text-slate-100 transition-colors">
         
         {/* Modal Top Bar */}
-        <div className="relative bg-gradient-to-b from-slate-100 via-white to-white dark:from-[#131b2e] dark:to-slate-900 px-6 pt-5 pb-6 border-b border-slate-200 dark:border-slate-800">
+        <div className="relative bg-gradient-to-b from-slate-100 via-slate-50 to-white dark:from-[#0d1527] dark:via-[#0f172a] dark:to-[#090d16] px-6 pt-5 pb-6 border-b border-slate-200 dark:border-slate-800">
           <button
             onClick={() => {
               onClose();

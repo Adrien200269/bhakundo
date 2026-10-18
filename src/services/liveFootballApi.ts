@@ -289,10 +289,14 @@ export async function fetchLiveMatchSummary(match: Match): Promise<Match> {
     const buildLineup = (rosterObj?: {
       formation?: string;
       roster?: {
-        athlete?: { displayName: string; jersey: string };
+        athlete?: { id?: string; displayName: string; shortName?: string; jersey: string };
         starter?: boolean;
-        position?: { abbreviation: string };
+        jersey?: string;
+        position?: { abbreviation: string; name?: string; displayName?: string };
         formationPlace?: string;
+        subbedIn?: boolean;
+        subbedOut?: boolean;
+        stats?: { name: string; value: number }[];
       }[];
     }): Lineup | undefined => {
       if (!rosterObj?.roster || rosterObj.roster.length === 0) return undefined;
@@ -301,59 +305,188 @@ export async function fetchLiveMatchSummary(match: Match): Promise<Match> {
 
       if (rawStarters.length === 0) return undefined;
 
-      // Group starters by tactical rows for realistic 2D pitch coordinates
-      const gks: Player[] = [];
-      const defs: Player[] = [];
-      const mids: Player[] = [];
-      const fwds: Player[] = [];
+      interface CategorizedPlayer extends Player {
+        lineIndex: number; // 0=GK, 1=DEF, 2=DM/MID, 3=AM, 4=FWD
+        sortKey: number;   // 1=Left to 5=Right
+        formationPlace: number;
+      }
 
-      rawStarters.forEach((p, idx) => {
-        const pos = (p.position?.abbreviation || 'MID').toUpperCase();
-        let normalizedPos: Player['position'] = 'MID';
-        if (pos === 'G' || pos === 'GK') normalizedPos = 'GK';
-        else if (pos === 'D' || pos === 'DEF') normalizedPos = 'DEF';
-        else if (pos === 'F' || pos === 'FWD' || pos === 'ST') normalizedPos = 'FWD';
+      const players: CategorizedPlayer[] = rawStarters.map((p, idx) => {
+        const abbr = (p.position?.abbreviation || '').toUpperCase().trim();
+        const pName = (p.position?.displayName || p.position?.name || '').toLowerCase().trim();
+        const fPlace = parseInt(p.formationPlace || '0', 10);
 
-        const player: Player = {
-          id: `p-${idx}`,
-          name: p.athlete?.displayName || `Player ${idx + 1}`,
-          number: parseInt(p.athlete?.jersey || `${idx + 1}`, 10) || idx + 1,
-          position: normalizedPos,
+        let role: Player['position'] = 'MID';
+        let lineIndex = 2;
+        let sortKey = 3;
+
+        // 1. Goalkeepers
+        if (abbr === 'G' || abbr === 'GK' || pName.includes('goal') || fPlace === 1) {
+          role = 'GK';
+          lineIndex = 0;
+          sortKey = 0;
+        }
+        // 2. Defenders - Left
+        else if (abbr === 'LB' || abbr === 'LWB' || pName.includes('left back') || pName.includes('left wing back')) {
+          role = 'DEF';
+          lineIndex = 1;
+          sortKey = 1;
+        }
+        // Defenders - Center-Left
+        else if (abbr === 'CD-L' || abbr === 'CB-L' || abbr === 'LCB' || pName.includes('center left') || pName.includes('centre left')) {
+          role = 'DEF';
+          lineIndex = 1;
+          sortKey = 2;
+        }
+        // Defenders - Center-Right
+        else if (abbr === 'CD-R' || abbr === 'CB-R' || abbr === 'RCB' || pName.includes('center right') || pName.includes('centre right')) {
+          role = 'DEF';
+          lineIndex = 1;
+          sortKey = 4;
+        }
+        // Defenders - Right
+        else if (abbr === 'RB' || abbr === 'RWB' || pName.includes('right back') || pName.includes('right wing back')) {
+          role = 'DEF';
+          lineIndex = 1;
+          sortKey = 5;
+        }
+        // Defenders - Central / General
+        else if (abbr === 'CD' || abbr === 'CB' || abbr === 'SW' || abbr === 'D' || abbr.includes('DEF') || pName.includes('defend') || pName.includes('back')) {
+          role = 'DEF';
+          lineIndex = 1;
+          sortKey = 3;
+        }
+        // 3. Forwards / Attackers - Left
+        else if (abbr === 'LF' || abbr === 'LW' || abbr === 'CF-L' || pName.includes('left forward') || pName.includes('left wing')) {
+          role = 'FWD';
+          lineIndex = 4;
+          sortKey = 1;
+        }
+        // Forwards / Attackers - Right
+        else if (abbr === 'RF' || abbr === 'RW' || abbr === 'CF-R' || pName.includes('right forward') || pName.includes('right wing')) {
+          role = 'FWD';
+          lineIndex = 4;
+          sortKey = 5;
+        }
+        // Forwards / Attackers - Central Striker
+        else if (abbr === 'F' || abbr === 'CF' || abbr === 'ST' || abbr === 'FW' || abbr === 'FWD' || pName.includes('forward') || pName.includes('striker')) {
+          role = 'FWD';
+          lineIndex = 4;
+          sortKey = 3;
+        }
+        // 4. Attacking Midfielders - Left
+        else if (abbr === 'AM-L' || abbr === 'CAM-L' || abbr === 'AML' || pName.includes('attacking midfielder left')) {
+          role = 'MID';
+          lineIndex = 3;
+          sortKey = 1;
+        }
+        // Attacking Midfielders - Right
+        else if (abbr === 'AM-R' || abbr === 'CAM-R' || abbr === 'AMR' || pName.includes('attacking midfielder right')) {
+          role = 'MID';
+          lineIndex = 3;
+          sortKey = 5;
+        }
+        // Attacking Midfielders - Central
+        else if (abbr === 'AM' || abbr === 'CAM' || pName.includes('attacking midfielder')) {
+          role = 'MID';
+          lineIndex = 3;
+          sortKey = 3;
+        }
+        // 5. Midfielders / Holding Midfielders - Left
+        else if (abbr === 'LM' || abbr === 'ML' || pName.includes('left mid')) {
+          role = 'MID';
+          lineIndex = 2;
+          sortKey = 1;
+        }
+        // Midfielders / Holding Midfielders - Right
+        else if (abbr === 'RM' || abbr === 'MR' || pName.includes('right mid')) {
+          role = 'MID';
+          lineIndex = 2;
+          sortKey = 5;
+        }
+        // Defensive / Holding Midfielders - Central
+        else if (abbr === 'DM' || abbr === 'CDM' || pName.includes('defensive mid')) {
+          role = 'MID';
+          lineIndex = 2;
+          sortKey = 3;
+        }
+        // Central Midfielders - Left / Right
+        else if (abbr === 'CM-L' || abbr === 'LCM') {
+          role = 'MID';
+          lineIndex = 2;
+          sortKey = 2;
+        } else if (abbr === 'CM-R' || abbr === 'RCM') {
+          role = 'MID';
+          lineIndex = 2;
+          sortKey = 4;
+        } else {
+          role = 'MID';
+          lineIndex = 2;
+          sortKey = 3;
+        }
+
+        const goalsStat = p.stats?.find((s) => s.name === 'totalGoals')?.value || 0;
+        const yellowStat = p.stats?.find((s) => s.name === 'yellowCards')?.value || 0;
+        const redStat = p.stats?.find((s) => s.name === 'redCards')?.value || 0;
+
+        return {
+          id: p.athlete?.id || `p-${idx}`,
+          name: p.athlete?.displayName || p.athlete?.shortName || `Player ${idx + 1}`,
+          number: parseInt(p.jersey || p.athlete?.jersey || `${idx + 1}`, 10) || (idx + 1),
+          position: role,
+          lineIndex,
+          sortKey,
+          formationPlace: fPlace,
+          goals: goalsStat > 0 ? goalsStat : undefined,
+          yellowCards: yellowStat > 0 ? yellowStat : undefined,
+          redCards: redStat > 0 ? redStat : undefined,
         };
-
-        if (normalizedPos === 'GK') gks.push(player);
-        else if (normalizedPos === 'DEF') defs.push(player);
-        else if (normalizedPos === 'FWD') fwds.push(player);
-        else mids.push(player);
       });
 
-      // Spread players cleanly across each row without overlapping
-      const assignCoords = (row: Player[], yPos: number) => {
-        const count = row.length;
-        if (count === 0) return;
-        if (count === 1) {
-          row[0].x = 50;
-          row[0].y = yPos;
-          return;
-        }
-        const gap = 70 / (count + 1);
-        row.forEach((p, i) => {
-          p.x = Math.round(15 + gap * (i + 1));
-          p.y = yPos;
-        });
+      // Group players by lineIndex
+      const lineMap = new Map<number, CategorizedPlayer[]>();
+      players.forEach((p) => {
+        if (!lineMap.has(p.lineIndex)) lineMap.set(p.lineIndex, []);
+        lineMap.get(p.lineIndex)!.push(p);
+      });
+
+      // Sort each row from left (low sortKey) to right (high sortKey)
+      lineMap.forEach((row) => {
+        row.sort((a, b) => a.sortKey - b.sortKey || a.formationPlace - b.formationPlace);
+      });
+
+      // Compute distinct tactical vertical spacing (Y%) based on active lines
+      const hasAM = lineMap.has(3);
+      const ySpacing: Record<number, number> = {
+        0: 88,                       // GK
+        1: hasAM ? 72 : 70,          // DEF
+        2: hasAM ? 55 : 46,          // DM / Central MID
+        3: 36,                       // Attacking Midfielders
+        4: 18,                       // Strikers / Forwards
       };
 
-      assignCoords(gks, 88);
-      assignCoords(defs, 70);
-      assignCoords(mids, 45);
-      assignCoords(fwds, 22);
+      lineMap.forEach((row, lIdx) => {
+        const yPos = ySpacing[lIdx] ?? 50;
+        const count = row.length;
+        row.forEach((p, i) => {
+          p.y = yPos;
+          if (count === 1) {
+            p.x = 50;
+          } else {
+            const sidePadding = count >= 5 ? 12 : 16;
+            const availableWidth = 100 - (sidePadding * 2);
+            const step = availableWidth / (count - 1);
+            p.x = Math.round(sidePadding + (step * i));
+          }
+        });
+      });
 
-      const startingXI = [...gks, ...defs, ...mids, ...fwds];
+      const startingXI: Player[] = players.map(({ lineIndex, sortKey, formationPlace, ...basePlayer }) => basePlayer);
 
       const substitutes: Player[] = rawSubs.map((s, i) => ({
-        id: `sub-${i}`,
-        name: s.athlete?.displayName || `Sub ${i + 1}`,
-        number: parseInt(s.athlete?.jersey || `${i + 12}`, 10) || i + 12,
+        id: s.athlete?.id || `sub-${i}`,
+        name: s.athlete?.displayName || s.athlete?.shortName || `Sub ${i + 1}`,
+        number: parseInt(s.jersey || s.athlete?.jersey || `${i + 12}`, 10) || (i + 12),
         position: 'MID',
       }));
 
