@@ -38,8 +38,8 @@ export const LeagueFilter: React.FC<LeagueFilterProps> = ({
       label: t.liveNow,
       icon: (
         <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
         </span>
       ),
       badge: liveCount,
@@ -50,18 +50,18 @@ export const LeagueFilter: React.FC<LeagueFilterProps> = ({
       icon: <NepaliFlag size="sm" className="w-3.5 h-4" />,
     },
     { id: 'premier-league', label: 'Premier League', icon: <span className="text-xs">🏴󠁧󠁢󠁥󠁮󠁧󠁿</span> },
-    { id: 'champions-league', label: 'Champions League', icon: <Trophy className="w-3.5 h-3.5 text-amber-400" /> },
+    { id: 'champions-league', label: 'Champions League', icon: <Trophy className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" /> },
     { id: 'la-liga', label: 'La Liga', icon: <span className="text-xs">🇪🇸</span> },
-    { id: 'favorites', label: t.favorites, icon: <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" /> },
+    { id: 'favorites', label: t.favorites, icon: <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 dark:text-amber-400 dark:fill-amber-400" /> },
   ];
 
   return (
     <div className="space-y-4">
       {/* Top Bar: Date Selector & Simulation Speed */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 p-2.5 rounded-2xl border border-slate-800">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
         
         {/* Date Navigator */}
-        <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800/80 text-xs font-semibold">
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-950/80 p-1 rounded-xl border border-slate-200 dark:border-slate-800/80 text-xs font-bold">
           <button
             onClick={() => {
               onDateChange('yesterday');
@@ -69,8 +69,8 @@ export const LeagueFilter: React.FC<LeagueFilterProps> = ({
             }}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
               activeDateTab === 'yesterday'
-                ? 'bg-slate-800 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
             {language === 'ne' ? 'हिजो' : 'Yesterday'}
@@ -82,8 +82,8 @@ export const LeagueFilter: React.FC<LeagueFilterProps> = ({
             }}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
               activeDateTab === 'today'
-                ? 'bg-red-600 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-red-600 text-white shadow-sm shadow-red-600/30'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
             {language === 'ne' ? 'आज (Today)' : 'Today'}
@@ -95,8 +95,8 @@ export const LeagueFilter: React.FC<LeagueFilterProps> = ({
             }}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
               activeDateTab === 'tomorrow'
-                ? 'bg-slate-800 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
             {language === 'ne' ? 'भोलि' : 'Tomorrow'}
@@ -105,10 +105,10 @@ export const LeagueFilter: React.FC<LeagueFilterProps> = ({
 
         {/* Live Pace Controls */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400 hidden sm:inline font-medium">
+          <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline font-semibold">
             {t.livePace}:
           </span>
-          <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800 text-xs">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-950/80 p-1 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold">
             <button
               onClick={() => {
                 onSpeedChange('paused');
@@ -116,8 +116,8 @@ export const LeagueFilter: React.FC<LeagueFilterProps> = ({
               }}
               className={`p-1.5 rounded-lg transition-all cursor-pointer ${
                 simulationSpeed === 'paused'
-                  ? 'bg-amber-600/30 text-amber-300 border border-amber-500/30'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-amber-100 dark:bg-amber-600/30 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
               title="Pause Live Clock"
             >
@@ -128,10 +128,10 @@ export const LeagueFilter: React.FC<LeagueFilterProps> = ({
                 onSpeedChange('normal');
                 soundEffects.playClick();
               }}
-              className={`px-2 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+              className={`px-2 py-1 rounded-lg transition-all cursor-pointer ${
                 simulationSpeed === 'normal'
-                  ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/30'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-emerald-100 dark:bg-emerald-600/30 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
               title="Normal Pace (ticks every 4s)"
             >
@@ -142,10 +142,10 @@ export const LeagueFilter: React.FC<LeagueFilterProps> = ({
                 onSpeedChange('fast');
                 soundEffects.playClick();
               }}
-              className={`px-2 py-1 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1 ${
+              className={`px-2 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
                 simulationSpeed === 'fast'
-                  ? 'bg-red-600/30 text-red-300 border border-red-500/30'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-red-100 dark:bg-red-600/30 text-red-800 dark:text-red-300 border border-red-300 dark:border-red-500/30'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
               title="Fast Pace (ticks every 1.5s)"
             >
@@ -169,8 +169,8 @@ export const LeagueFilter: React.FC<LeagueFilterProps> = ({
               }}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-150 cursor-pointer ${
                 isActive
-                  ? 'bg-gradient-to-r from-red-600 to-rose-700 text-white shadow-lg shadow-red-950/40 ring-1 ring-red-400/30'
-                  : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-800/80 hover:border-slate-700'
+                  ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md shadow-red-600/25 ring-1 ring-red-400/40'
+                  : 'bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 shadow-sm'
               }`}
             >
               {cat.icon}
@@ -180,7 +180,7 @@ export const LeagueFilter: React.FC<LeagueFilterProps> = ({
                   className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-black ${
                     isActive
                       ? 'bg-white text-red-600'
-                      : 'bg-red-600/20 text-red-400 border border-red-500/30'
+                      : 'bg-red-100 dark:bg-red-600/20 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-500/30'
                   }`}
                 >
                   {cat.badge}
