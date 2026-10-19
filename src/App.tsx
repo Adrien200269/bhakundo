@@ -9,6 +9,8 @@ import StandingsTable from './components/StandingsTable';
 import TopScorers from './components/TopScorers';
 import GoalAlertToast from './components/GoalAlertToast';
 import ApiConfigModal from './components/ApiConfigModal';
+import BentoGrid from './components/BentoGrid';
+import RightSidebarTicker from './components/RightSidebarTicker';
 import NepaliFlag from './components/NepaliFlag';
 import type { Match, MatchEvent } from './types/football';
 import { liveEngine } from './services/liveEngine';
@@ -171,6 +173,8 @@ export const App: React.FC = () => {
         onToggleSound={handleToggleSound}
         theme={theme}
         onToggleTheme={toggleTheme}
+        liveCount={liveCount}
+        onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
       {/* 2. 100% Ad-Free Guarantee Banner */}
@@ -267,50 +271,78 @@ export const App: React.FC = () => {
         
         {/* VIEW 1: MATCHES */}
         {activeView === 'matches' && (
-          <div className="space-y-5">
-            {/* Filter and Date Strip */}
-            <LeagueFilter
-              activeFilter={activeFilter}
-              onFilterChange={setActiveFilter}
-              language={language}
-              liveCount={liveCount}
-              selectedDate="2026-10-19"
-              onDateChange={handleDateChange}
-              activeDateTab={activeDateTab}
-              simulationSpeed={simulationSpeed}
-              onSpeedChange={handleSpeedChange}
-            />
-
-            {/* Matches Grid */}
-            {filteredMatches.length === 0 ? (
-              <div className="text-center py-16 bg-white dark:bg-slate-900/60 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 space-y-3 shadow-sm">
-                <div className="text-4xl">⚽</div>
-                <h4 className="text-base font-bold text-slate-800 dark:text-slate-300">{t.noMatchesFound}</h4>
-                <p className="text-xs text-slate-500">
-                  Try clearing your search query or selecting a different category.
-                </p>
-                <button
-                  onClick={() => {
-                    setActiveFilter('all');
-                    setSearchQuery('');
-                  }}
-                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer border border-slate-200 dark:border-slate-700"
-                >
-                  Reset Filters
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredMatches.map((match) => (
-                  <MatchCard
-                    key={match.id}
-                    match={match}
-                    onSelect={handleSelectMatch}
-                    onToggleFavorite={handleToggleFavorite}
-                  />
-                ))}
-              </div>
+          <div className="space-y-6">
+            
+            {/* Bento Grid Showcase Hub (Featured Match, Nepal NSL Card, Live Stats) */}
+            {!searchQuery && activeFilter === 'all' && (
+              <BentoGrid
+                matches={matches}
+                onSelectMatch={handleSelectMatch}
+                onFilterCategory={setActiveFilter}
+                language={language}
+              />
             )}
+
+            {/* Main 2-Column Responsive Layout: Left Matches + Right Animated Ticker Sidebar */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              
+              {/* Left Main Matches Area (8 columns on lg) */}
+              <div className="lg:col-span-8 space-y-5">
+                {/* Filter and Date Strip */}
+                <LeagueFilter
+                  activeFilter={activeFilter}
+                  onFilterChange={setActiveFilter}
+                  language={language}
+                  liveCount={liveCount}
+                  selectedDate="2026-10-19"
+                  onDateChange={handleDateChange}
+                  activeDateTab={activeDateTab}
+                  simulationSpeed={simulationSpeed}
+                  onSpeedChange={handleSpeedChange}
+                />
+
+                {/* Matches Grid */}
+                {filteredMatches.length === 0 ? (
+                  <div className="text-center py-16 bg-white dark:bg-slate-900/60 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 space-y-3 shadow-sm">
+                    <div className="text-4xl">⚽</div>
+                    <h4 className="text-base font-bold text-slate-800 dark:text-slate-300">{t.noMatchesFound}</h4>
+                    <p className="text-xs text-slate-500">
+                      Try clearing your search query or selecting a different category.
+                    </p>
+                    <button
+                      onClick={() => {
+                        setActiveFilter('all');
+                        setSearchQuery('');
+                      }}
+                      className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer border border-slate-200 dark:border-slate-700"
+                    >
+                      Reset Filters
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {filteredMatches.map((match) => (
+                      <MatchCard
+                        key={match.id}
+                        match={match}
+                        onSelect={handleSelectMatch}
+                        onToggleFavorite={handleToggleFavorite}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Right Column: Sticky Live Animated Scrolling Ticker Sidebar (4 columns on lg) */}
+              <div className="lg:col-span-4 lg:sticky lg:top-32 space-y-4">
+                <RightSidebarTicker
+                  matches={matches}
+                  onSelectMatch={handleSelectMatch}
+                  language={language}
+                  onSimulateGoal={handleSimulateGoal}
+                />
+              </div>
+            </div>
           </div>
         )}
 
