@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Calendar, RefreshCw, Radio } from 'lucide-react';
-import { getOneMonthDateRange, getMonthRangeBounds } from '../utils/dateRange';
+import { ChevronLeft, ChevronRight, Calendar, RefreshCw, Radio, Clock } from 'lucide-react';
+import { getOneMonthDateRange, getMonthRangeBounds, getKathmanduMidnight } from '../utils/dateRange';
 import type { Language } from '../utils/translations';
 import { soundEffects } from '../utils/soundEffects';
 
@@ -60,7 +60,7 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({
 
   // Find Saturday of current week for "This Weekend" jump
   const thisWeekendIso = useMemo(() => {
-    const today = new Date();
+    const today = getKathmanduMidnight();
     const dayOfWeek = today.getDay(); // 0 is Sunday, 6 is Saturday
     const daysUntilSaturday = (6 - dayOfWeek + 7) % 7;
     const sat = new Date(today);
@@ -79,22 +79,26 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({
         
         {/* Title & Date Window Info */}
         <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400">
+          <div className="p-1.5 rounded-lg bg-red-50 dark:bg-red-950/60 text-[#DC143C] dark:text-[#ff385c]">
             <Calendar className="w-4 h-4" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
                 {language === 'ne' ? '१ महिनाको खेल तालिका' : '1-Month Match Schedule'}
               </span>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                 {language === 'ne' ? '-१ हप्ता ➔ +३ हप्ता' : '-1 Week ➔ +3 Weeks'}
               </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-950/50 text-[#DC143C] dark:text-[#ff385c] border border-red-200 dark:border-red-900/40 inline-flex items-center gap-1">
+                <Clock className="w-2.5 h-2.5" />
+                <span>Kathmandu Time (NPT UTC+5:45)</span>
+              </span>
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
               {language === 'ne'
-                ? 'विगतका नतिजा र आगामी फिक्सचरहरू'
-                : 'Full archive of past results & upcoming global fixtures'}
+                ? 'विगतका नतिजा र आगामी फिक्सचरहरू (काठमाडौँ समय)'
+                : 'Full archive of past results & upcoming fixtures in Kathmandu Time (NPT)'}
             </p>
           </div>
         </div>

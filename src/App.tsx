@@ -9,7 +9,7 @@ import TopScorers from './components/TopScorers';
 import GoalAlertToast from './components/GoalAlertToast';
 import ApiConfigModal from './components/ApiConfigModal';
 import DateNavigator from './components/DateNavigator';
-import { formatIsoDate } from './utils/dateRange';
+import { getKathmanduIsoDate } from './utils/dateRange';
 import BentoGrid from './components/BentoGrid';
 import RightSidebarTicker from './components/RightSidebarTicker';
 import NepaliFlag from './components/NepaliFlag';
@@ -32,7 +32,7 @@ export const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('all');
   const [activeView, setActiveView] = useState<MainView>('matches');
-  const todayIso = useMemo(() => formatIsoDate(new Date()), []);
+  const todayIso = useMemo(() => getKathmanduIsoDate(), []);
   const [selectedDate, setSelectedDate] = useState<string>(todayIso);
   const [isLiveConnected, setIsLiveConnected] = useState<boolean>(true);
   const [lastUpdatedTime, setLastUpdatedTime] = useState<string>('Just now');
@@ -428,32 +428,40 @@ export const App: React.FC = () => {
 
       {/* 8. Footer */}
       <footer className="bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800/80 py-8 px-4 text-xs text-slate-500 dark:text-slate-400 mt-12 transition-colors">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
           <div className="flex items-center gap-3">
             <NepaliFlag size="md" />
             <div>
               <div className="font-extrabold text-sm flex items-center gap-1.5 justify-center md:justify-start">
-                <span className="bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 bg-clip-text text-transparent font-black font-brand text-base">
+                <span className="text-[#DC143C] dark:text-[#ff385c] font-black font-brand text-base tracking-tight">
                   Bhakundo
                 </span>
-                <span className="text-red-500 font-semibold">(भाकुण्डो)</span>
+                <span className="text-[#DC143C] dark:text-[#ff385c] font-semibold">(भाकुण्डो)</span>
                 <span>🇳🇵</span>
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-500 mt-0.5">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                 The Official Real-Time Football Network for Nepal and Global Fans.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-6 text-slate-500 dark:text-slate-400 text-xs font-semibold">
-            <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-              <Shield className="w-3.5 h-3.5" />
-              <span>Official 100% Real Live Feeds</span>
-            </span>
-            <span className="text-slate-300 dark:text-slate-600">•</span>
-            <span>Live Nepal & International Matches</span>
-            <span className="text-slate-300 dark:text-slate-600">•</span>
-            <span>European & Global Competitions</span>
+          {/* Made by Sabja Shrestha & Kathmandu Time Info */}
+          <div className="flex flex-col sm:flex-row items-center gap-4 text-xs font-semibold">
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100/90 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+              <span className="text-red-500 animate-pulse">❤️</span>
+              <span className="text-slate-700 dark:text-slate-300">
+                Made by <strong className="font-black text-slate-900 dark:text-white">Sabja Shrestha</strong>
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 text-xs">
+              <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                <Shield className="w-3.5 h-3.5" />
+                <span>Kathmandu Time (NPT UTC+5:45)</span>
+              </span>
+              <span className="text-slate-300 dark:text-slate-700">•</span>
+              <span>100% Real Live Feeds</span>
+            </div>
           </div>
         </div>
       </footer>

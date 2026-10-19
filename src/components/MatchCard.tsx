@@ -61,7 +61,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
           )}
           {match.status === 'UPCOMING' && (
             <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-500/30">
-              {match.startTime}
+              {match.startTime} NPT
             </span>
           )}
 

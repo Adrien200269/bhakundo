@@ -1,10 +1,11 @@
-import React from 'react';
-import { Volume2, VolumeX, Search, Globe, Sun, Moon, Settings, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Volume2, VolumeX, Search, Globe, Sun, Moon, Settings, X, Clock } from 'lucide-react';
 import NepaliFlag from './NepaliFlag';
 import type { Language } from '../utils/translations';
 import { translations } from '../utils/translations';
 import { soundEffects } from '../utils/soundEffects';
 import type { Theme } from '../utils/theme';
+import { getKathmanduTimeString } from '../utils/dateRange';
 
 interface NavbarProps {
   language: Language;
@@ -30,6 +31,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSettings,
 }) => {
   const t = translations[language];
+  const [ktmTime, setKtmTime] = useState<string>(() => getKathmanduTimeString(new Date(), false));
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setKtmTime(getKathmanduTimeString(new Date(), false));
+    }, 10000);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 bg-white/90 dark:bg-[#070b14]/90 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 shadow-xs dark:shadow-md transition-colors duration-200">
@@ -49,9 +58,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl sm:text-3xl font-black tracking-tight bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 bg-clip-text text-transparent flex items-center font-brand drop-shadow-xs">
+                  <span className="text-2xl sm:text-3xl font-black tracking-tight text-[#DC143C] dark:text-[#ff385c] flex items-center font-brand">
                     <span>{t.appName}</span>
-                    <span className="inline-block w-2.5 h-2.5 rounded-full bg-gradient-to-tr from-red-600 to-amber-500 ml-1.5 shadow-sm shadow-red-500/50 animate-pulse" />
+                    <span className="inline-block w-2.5 h-2.5 rounded-full bg-[#DC143C] dark:bg-[#ff385c] ml-1.5 shadow-sm shadow-red-500/50 animate-pulse" />
                   </span>
                 </div>
 
@@ -88,6 +97,15 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Action Controls */}
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+
+            {/* Live Kathmandu Time Pill */}
+            <div
+              className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-mono font-bold text-slate-700 dark:text-slate-300 shadow-xs"
+              title="Live Kathmandu Time (Asia/Kathmandu, UTC+5:45)"
+            >
+              <Clock className="w-3.5 h-3.5 text-[#DC143C] dark:text-[#ff385c]" />
+              <span>{ktmTime}</span>
+            </div>
 
             {/* Dark / Light Mode Toggle Button */}
             <button

@@ -1,6 +1,7 @@
 import type { Match, MatchEvent } from '../types/football';
 import { soundEffects } from '../utils/soundEffects';
 import { fetchLiveMatchesFromApi, fetchLiveMatchSummary } from './liveFootballApi';
+import { getKathmanduIsoDate, getKathmanduTimeString } from '../utils/dateRange';
 import confetti from 'canvas-confetti';
 
 export type GoalCallback = (match: Match, event: MatchEvent) => void;
@@ -17,7 +18,7 @@ class LiveFootballEngine {
   public externalApiProvider: 'none' | 'football-data' = 'none';
   public isLiveFeedConnected: boolean = false;
   public lastUpdatedTime: string = 'Just now';
-  public selectedDate: string = new Date().toISOString().split('T')[0];
+  public selectedDate: string = getKathmanduIsoDate();
   private cacheByDate = new Map<string, { matches: Match[]; timestamp: number }>();
 
   constructor() {
@@ -59,7 +60,7 @@ class LiveFootballEngine {
       this.selectedDate = targetDate;
     }
 
-    const todayIso = new Date().toISOString().split('T')[0];
+    const todayIso = getKathmanduIsoDate();
     const isToday = this.selectedDate === todayIso;
 
     // Check cache: for past/future dates, cached data is immediately re-usable
@@ -108,7 +109,7 @@ class LiveFootballEngine {
         this.matches = updated;
         this.cacheByDate.set(this.selectedDate, { matches: updated, timestamp: now });
         this.isLiveFeedConnected = true;
-        this.lastUpdatedTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        this.lastUpdatedTime = getKathmanduTimeString(new Date(), true);
         this.notify();
       }
     } catch (err) {
@@ -173,7 +174,7 @@ class LiveFootballEngine {
     }
     // Poll API every 25 seconds for continuous real-world match updates
     this.apiPollIntervalId = window.setInterval(() => {
-      const todayIso = new Date().toISOString().split('T')[0];
+      const todayIso = getKathmanduIsoDate();
       // Keep today's live scores or currently viewed date continuously updated
       this.refreshLiveMatches(this.selectedDate || todayIso, true);
     }, 25000);

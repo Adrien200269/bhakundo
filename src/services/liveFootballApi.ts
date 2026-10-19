@@ -1,4 +1,5 @@
 import type { Match, MatchEvent, MatchStats, CommentaryItem, Lineup, HeadToHeadMatch, StandingTeam, Player, TopScorer } from '../types/football';
+import { getKathmanduIsoDate, KATHMANDU_TIMEZONE } from '../utils/dateRange';
 
 // Public ESPN soccer leagues - covering all major world, continental, and Asian competitions
 export const LEAGUES_CONFIG = [
@@ -31,7 +32,7 @@ export const LEAGUES_CONFIG = [
  * Strictly returns ONLY real data. If no matches are scheduled, returns an empty array.
  */
 export async function fetchLiveMatchesFromApi(targetDate?: string): Promise<Match[]> {
-  const todayIso = new Date().toISOString().split('T')[0];
+  const todayIso = getKathmanduIsoDate();
   let targetIso = todayIso;
   if (targetDate) {
     if (targetDate.includes('-')) {
@@ -79,14 +80,22 @@ export async function fetchLiveMatchesFromApi(targetDate?: string): Promise<Matc
         const minuteParsed =
           parseInt(clockText.replace(/[^0-9]/g, ''), 10) || (status === 'FINISHED' ? 90 : 0);
 
-        // Parse ISO start time
+        // Parse kickoff time in Kathmandu Timezone (NPT, UTC+5:45)
         const eventDateObj = new Date(ev.date || comp.date);
-        const startTimeStr = eventDateObj.toLocaleTimeString([], {
-          hour: '2-digit',
+        const startTimeStr = new Intl.DateTimeFormat('en-US', {
+          hour: 'numeric',
           minute: '2-digit',
-          hour12: false,
-        });
-        const dateStr = eventDateObj.toISOString().split('T')[0];
+          hour12: true,
+          timeZone: KATHMANDU_TIMEZONE,
+        }).format(eventDateObj);
+
+        // Calendar date in Kathmandu Timezone
+        const dateStr = new Intl.DateTimeFormat('en-CA', {
+          timeZone: KATHMANDU_TIMEZONE,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        }).format(eventDateObj);
 
         // Format team forms
         const parseForm = (formStr?: string): ('W' | 'D' | 'L')[] => {

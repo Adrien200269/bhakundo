@@ -12,11 +12,49 @@ export interface DayItem {
   relativeLabel?: string; // '1 Wk Ago', 'Yesterday', 'Today', 'Tomorrow', '+3 Wks'
 }
 
+export const KATHMANDU_TIMEZONE = 'Asia/Kathmandu';
+
 const NEP_DAYS = ['आइत', 'सोम', 'मंगल', 'बुध', 'बिही', 'शुक्र', 'शनि'];
 const ENG_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const NEP_MONTHS = ['बैशाख', 'जेठ', 'असार', 'साउन', 'भदौ', 'असोज', 'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'];
 const ENG_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * Returns YYYY-MM-DD for any date in Kathmandu timezone.
+ */
+export function getKathmanduIsoDate(d: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: KATHMANDU_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d);
+}
+
+/**
+ * Returns current time formatted in Kathmandu timezone (e.g. "11:45 AM NPT" or "11:45:12 AM NPT").
+ */
+export function getKathmanduTimeString(d: Date = new Date(), includeSeconds = false): string {
+  return (
+    new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      ...(includeSeconds ? { second: '2-digit' } : {}),
+      hour12: true,
+      timeZone: KATHMANDU_TIMEZONE,
+    }).format(d) + ' NPT'
+  );
+}
+
+/**
+ * Returns a Date object representing midnight of today in Kathmandu.
+ */
+export function getKathmanduMidnight(): Date {
+  const ktmIso = getKathmanduIsoDate(new Date());
+  const [y, m, d] = ktmIso.split('-').map(Number);
+  return new Date(y, m - 1, d, 0, 0, 0, 0);
+}
 
 export function formatIsoDate(d: Date): string {
   const year = d.getFullYear();
@@ -31,12 +69,12 @@ export function formatApiDate(d: Date): string {
 
 /**
  * Generates the full 1-month date window:
- * 1 week ago (-7 days) to 3 weeks next (+21 days) = 29 days total.
+ * 1 week ago (-7 days) to 3 weeks next (+21 days) = 29 days total,
+ * calibrated to Kathmandu timezone (NPT, UTC+5:45).
  */
 export function getOneMonthDateRange(lang: 'en' | 'ne' = 'en'): DayItem[] {
   const days: DayItem[] = [];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = getKathmanduMidnight();
 
   for (let offset = -7; offset <= 21; offset++) {
     const d = new Date(today);
@@ -84,7 +122,7 @@ export function getOneMonthDateRange(lang: 'en' | 'ne' = 'en'): DayItem[] {
 }
 
 export function getMonthRangeBounds(): { minIso: string; maxIso: string; todayIso: string } {
-  const today = new Date();
+  const today = getKathmanduMidnight();
   const past7 = new Date(today);
   past7.setDate(today.getDate() - 7);
   const future21 = new Date(today);

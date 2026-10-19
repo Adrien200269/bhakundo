@@ -151,7 +151,8 @@ export const MatchDetailModal: React.FC<MatchDetailModalProps> = ({
               {match.status === 'UPCOMING' ? (
                 <div className="text-center">
                   <span className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">VS</span>
-                  <div className="text-sm font-bold text-blue-600 dark:text-blue-400 mt-1">{match.startTime}</div>
+                  <div className="text-sm font-bold text-blue-600 dark:text-blue-400 mt-1">{match.startTime} NPT</div>
+                  <span className="text-[10px] text-slate-400 font-medium block">Kathmandu Time</span>
                 </div>
               ) : (
                 <div className="flex flex-col items-center">
