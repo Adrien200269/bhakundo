@@ -22,7 +22,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
   return (
     <div
       onClick={() => onSelect(match)}
-      className={`group relative bg-white dark:bg-slate-900/90 hover:bg-slate-50/80 dark:hover:bg-slate-850 border rounded-2xl p-4 sm:p-5 transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md dark:shadow-md dark:hover:shadow-xl hover:-translate-y-0.5 ${
+      className={`group relative bg-white dark:bg-slate-900/90 hover:bg-slate-50/80 dark:hover:bg-slate-800/80 border rounded-2xl p-4 sm:p-5 transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md dark:shadow-md dark:hover:shadow-xl hover:-translate-y-0.5 ${
         isLive
           ? 'border-red-400 dark:border-red-500/40 hover:border-red-500 dark:hover:border-red-500/80 shadow-red-500/10 dark:shadow-red-950/20'
           : 'border-slate-200/90 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700'
@@ -108,7 +108,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         {/* Center Scoreboard */}
         <div className="col-span-2 flex flex-col items-center justify-center px-1">
           {match.status === 'UPCOMING' ? (
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-extrabold uppercase tracking-wider bg-slate-100 dark:bg-slate-850 px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-800">
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-extrabold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700">
               VS
             </span>
           ) : (

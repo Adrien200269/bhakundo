@@ -184,7 +184,7 @@ export const LineupPitch: React.FC<LineupPitchProps> = ({ match }) => {
 
       {/* 2D Realistic Football Pitch */}
       {viewMode === 'pitch' ? (
-        <div className="relative w-full aspect-[4/3] sm:aspect-[16/11] bg-gradient-to-b from-emerald-800 via-emerald-850 to-emerald-950 rounded-2xl overflow-hidden border-2 border-emerald-600/50 shadow-2xl p-4 select-none">
+        <div className="relative w-full aspect-[4/3] sm:aspect-[16/11] bg-gradient-to-b from-emerald-800 via-emerald-900 to-emerald-950 rounded-2xl overflow-hidden border-2 border-emerald-600/50 shadow-2xl p-4 select-none">
           
           {/* Pitch Turf Stripes Pattern */}
           <div className="absolute inset-0 opacity-15 pointer-events-none flex flex-col">

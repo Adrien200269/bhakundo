@@ -137,7 +137,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ language }) => {
               {liveTable.map((row) => (
                 <tr
                   key={row.team.id}
-                  className="hover:bg-slate-50 dark:hover:bg-slate-850/60 transition-colors font-medium text-slate-700 dark:text-slate-200"
+                  className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors font-medium text-slate-700 dark:text-slate-200"
                 >
                   {/* Rank */}
                   <td className="py-3 pl-2 font-mono">

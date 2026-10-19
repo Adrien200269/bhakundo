@@ -25,7 +25,7 @@ export const TopScorers: React.FC<TopScorersProps> = ({ language }) => {
           return (
             <div
               key={scorer.playerName}
-              className="py-3 flex items-center justify-between gap-3 text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-850/50 px-2.5 rounded-xl transition-colors"
+              className="py-3 flex items-center justify-between gap-3 text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-800/50 px-2.5 rounded-xl transition-colors"
             >
               <div className="flex items-center gap-3">
                 {/* Rank Badge */}

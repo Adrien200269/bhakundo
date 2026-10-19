@@ -91,7 +91,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => {
                 liveEngine.triggerTestGoal();
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs font-bold shadow-md shadow-red-600/20 active:scale-95 transition-all cursor-pointer"
+              className="h-9 flex items-center gap-1.5 px-3 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white text-xs font-bold shadow-sm shadow-red-600/30 transition-all cursor-pointer"
               title="Test real-time goal alerts with stadium audio and confetti"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-spin" style={{ animationDuration: '4s' }} />
@@ -105,7 +105,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onToggleTheme();
                 soundEffects.playClick();
               }}
-              className="p-2 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-700 dark:text-amber-300 transition-all cursor-pointer shadow-sm"
+              className="h-9 w-9 rounded-xl flex items-center justify-center border border-slate-200 dark:border-slate-700/80 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-amber-400 transition-all cursor-pointer shadow-xs"
               title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4 text-slate-700" />}
@@ -117,10 +117,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onToggleSound();
                 soundEffects.playClick();
               }}
-              className={`p-2 rounded-xl border transition-all cursor-pointer shadow-sm ${
+              className={`h-9 w-9 rounded-xl flex items-center justify-center border transition-all cursor-pointer shadow-xs ${
                 soundEnabled
-                  ? 'bg-slate-100 dark:bg-slate-850 border-slate-200 dark:border-slate-700 text-emerald-600 dark:text-emerald-400'
-                  : 'bg-slate-100/60 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                  ? 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700 text-emerald-600 dark:text-emerald-400'
+                  : 'bg-slate-100/60 hover:bg-slate-200 dark:bg-slate-800/50 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
               }`}
               title={soundEnabled ? 'Audio alerts enabled' : 'Audio alerts muted'}
             >
@@ -134,7 +134,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onLanguageChange(nextLang);
                 soundEffects.playClick();
               }}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 transition-all cursor-pointer shadow-sm"
+              className="h-9 flex items-center gap-1.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 transition-all cursor-pointer shadow-xs"
               title="Toggle English / नेपाली"
             >
               <Globe className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
