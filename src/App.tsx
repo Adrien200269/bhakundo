@@ -433,10 +433,10 @@ export const App: React.FC = () => {
             <NepaliFlag size="md" />
             <div>
               <div className="font-extrabold text-sm flex items-center gap-1.5 justify-center md:justify-start">
-                <span className="text-[#DC143C] dark:text-[#ff385c] font-black font-brand text-base tracking-tight">
+                <span className="text-slate-900 dark:text-white font-black font-brand text-base tracking-tight">
                   Bhakundo
                 </span>
-                <span className="text-[#DC143C] dark:text-[#ff385c] font-semibold">(भाकुण्डो)</span>
+                <span className="text-red-600 dark:text-red-400 font-semibold">(भाकुण्डो)</span>
                 <span>🇳🇵</span>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">

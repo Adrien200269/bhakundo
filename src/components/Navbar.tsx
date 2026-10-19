@@ -58,9 +58,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl sm:text-3xl font-black tracking-tight text-[#DC143C] dark:text-[#ff385c] flex items-center font-brand">
+                  <span className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white flex items-center font-brand">
                     <span>{t.appName}</span>
-                    <span className="inline-block w-2.5 h-2.5 rounded-full bg-[#DC143C] dark:bg-[#ff385c] ml-1.5 shadow-sm shadow-red-500/50 animate-pulse" />
+                    <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-600 ml-1.5 shadow-sm shadow-red-500/50 animate-pulse" />
                   </span>
                 </div>
 
