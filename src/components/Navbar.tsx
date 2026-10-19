@@ -1,5 +1,5 @@
 import React from 'react';
-import { Volume2, VolumeX, Search, Globe, Sun, Moon, Settings, X, Zap } from 'lucide-react';
+import { Volume2, VolumeX, Search, Globe, Sun, Moon, Settings, X } from 'lucide-react';
 import NepaliFlag from './NepaliFlag';
 import type { Language } from '../utils/translations';
 import { translations } from '../utils/translations';
@@ -15,7 +15,6 @@ interface NavbarProps {
   onToggleSound: () => void;
   theme: Theme;
   onToggleTheme: () => void;
-  liveCount?: number;
   onOpenSettings?: () => void;
 }
 
@@ -28,7 +27,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleSound,
   theme,
   onToggleTheme,
-  liveCount = 0,
   onOpenSettings,
 }) => {
   const t = translations[language];
@@ -52,20 +50,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
                   <span className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white flex items-center font-brand">
-                    <span>Bhakundo</span>
+                    <span>{t.appName}</span>
                     <span className="inline-block w-2 h-2 rounded-full bg-red-600 ml-1 shadow-xs shadow-red-500/50" />
-                    <span className="text-red-600 dark:text-red-400 text-sm ml-2 hidden sm:inline-block font-bold">
-                      ({t.appName === 'भाकुण्डो' ? 'Bhakundo' : 'भाकुण्डो'})
-                    </span>
                   </span>
-
-                  {/* Pulsing Live Matches Indicator Pill */}
-                  {liveCount > 0 && (
-                    <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-red-100 dark:bg-red-950/80 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-600/40 animate-pulse">
-                      <Zap className="w-2.5 h-2.5 fill-red-600 text-red-600" />
-                      <span>{liveCount} LIVE</span>
-                    </span>
-                  )}
                 </div>
 
                 <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest font-semibold hidden md:block">

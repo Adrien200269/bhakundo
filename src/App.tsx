@@ -172,7 +172,6 @@ export const App: React.FC = () => {
         onToggleSound={handleToggleSound}
         theme={theme}
         onToggleTheme={toggleTheme}
-        liveCount={liveCount}
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
