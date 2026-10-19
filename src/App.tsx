@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Navbar from './components/Navbar';
-import AdFreeBanner from './components/AdFreeBanner';
 import LeagueFilter from './components/LeagueFilter';
 import type { FilterCategory } from './components/LeagueFilter';
 import MatchCard from './components/MatchCard';
@@ -177,10 +176,7 @@ export const App: React.FC = () => {
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
-      {/* 2. 100% Ad-Free Guarantee Banner */}
-      <AdFreeBanner language={language} />
-
-      {/* 3. Main Navigation Bar (Matches / Standings / Top Scorers) */}
+      {/* 2. Main Navigation Bar (Matches / Standings / Top Scorers) */}
       <nav className="bg-white/80 dark:bg-slate-900/50 border-b border-slate-200/90 dark:border-slate-800/80 sticky top-18 z-30 backdrop-blur-md transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between gap-4 py-2.5">

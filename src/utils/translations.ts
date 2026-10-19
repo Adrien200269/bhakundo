@@ -3,7 +3,7 @@ export type Language = 'en' | 'ne';
 export const translations = {
   en: {
     appName: 'Bhakundo',
-    tagline: 'Ad-Free Real-Time Football Hub',
+    tagline: 'Real-Time Football Network',
     nepalFlagTitle: 'Nepali Football Spirit',
     allMatches: 'All Matches',
     liveNow: 'Live Now',
@@ -59,7 +59,7 @@ export const translations = {
   },
   ne: {
     appName: 'भाकुण्डो',
-    tagline: 'विज्ञापन-रहित रियल-टाइम फुटबल हब',
+    tagline: 'प्रत्यक्ष फुटबल नेटवर्क',
     nepalFlagTitle: 'नेपाली फुटबलको गौरव',
     allMatches: 'सबै खेलहरू',
     liveNow: 'अहिले लाइभ',

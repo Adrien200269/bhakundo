@@ -1,10 +1,9 @@
 import React from 'react';
-import { Volume2, VolumeX, Sparkles, ShieldCheck, Search, Globe, Sun, Moon, Settings, X, Zap } from 'lucide-react';
+import { Volume2, VolumeX, Search, Globe, Sun, Moon, Settings, X, Zap } from 'lucide-react';
 import NepaliFlag from './NepaliFlag';
 import type { Language } from '../utils/translations';
 import { translations } from '../utils/translations';
 import { soundEffects } from '../utils/soundEffects';
-import { liveEngine } from '../services/liveEngine';
 import type { Theme } from '../utils/theme';
 
 interface NavbarProps {
@@ -52,18 +51,17 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white flex items-center font-sans">
-                    <span className="bg-gradient-to-r from-red-600 via-rose-600 to-amber-500 bg-clip-text text-transparent">
-                      Bhakundo
-                    </span>
-                    <span className="text-red-600 dark:text-red-500 text-sm ml-1.5 hidden sm:inline-block font-semibold">
+                  <span className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white flex items-center font-brand">
+                    <span>Bhakundo</span>
+                    <span className="inline-block w-2 h-2 rounded-full bg-red-600 ml-1 shadow-xs shadow-red-500/50" />
+                    <span className="text-red-600 dark:text-red-400 text-sm ml-2 hidden sm:inline-block font-bold">
                       ({t.appName === 'भाकुण्डो' ? 'Bhakundo' : 'भाकुण्डो'})
                     </span>
                   </span>
 
                   {/* Pulsing Live Matches Indicator Pill */}
                   {liveCount > 0 && (
-                    <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-red-100 dark:bg-red-950/80 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-600/40 animate-pulse">
+                    <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-red-100 dark:bg-red-950/80 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-600/40 animate-pulse">
                       <Zap className="w-2.5 h-2.5 fill-red-600 text-red-600" />
                       <span>{liveCount} LIVE</span>
                     </span>
@@ -74,15 +72,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {t.tagline}
                 </span>
               </div>
-            </div>
-
-            {/* AD-FREE GUARANTEE BADGE */}
-            <div 
-              className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold shadow-xs cursor-default"
-              title={t.adFreeTooltip}
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>{t.adFreeBadge}</span>
             </div>
           </div>
 
@@ -112,18 +101,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Action Controls */}
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-            {/* Live Goal Simulation Trigger */}
-            <button
-              onClick={() => {
-                liveEngine.triggerTestGoal();
-              }}
-              className="h-9 flex items-center gap-1.5 px-3 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 active:scale-95 text-white text-xs font-bold shadow-sm shadow-red-600/30 transition-all cursor-pointer"
-              title="Test real-time goal alerts with stadium audio and confetti"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-spin" style={{ animationDuration: '4s' }} />
-              <span className="hidden sm:inline">{t.simulateGoal}</span>
-              <span className="sm:hidden">⚽ Goal</span>
-            </button>
 
             {/* Dark / Light Mode Toggle Button */}
             <button
