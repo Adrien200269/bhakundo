@@ -8,6 +8,8 @@ import StandingsTable from './components/StandingsTable';
 import TopScorers from './components/TopScorers';
 import GoalAlertToast from './components/GoalAlertToast';
 import ApiConfigModal from './components/ApiConfigModal';
+import DateNavigator from './components/DateNavigator';
+import { formatIsoDate } from './utils/dateRange';
 import BentoGrid from './components/BentoGrid';
 import RightSidebarTicker from './components/RightSidebarTicker';
 import NepaliFlag from './components/NepaliFlag';
@@ -17,7 +19,7 @@ import { soundEffects } from './utils/soundEffects';
 import { useTheme } from './utils/theme';
 import type { Language } from './utils/translations';
 import { translations } from './utils/translations';
-import { Trophy, Award, Radio, Settings, Shield, RefreshCw } from 'lucide-react';
+import { Trophy, Award, Radio, Settings, Shield, RefreshCw, Calendar } from 'lucide-react';
 
 type MainView = 'matches' | 'standings' | 'scorers';
 
@@ -30,7 +32,10 @@ export const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('all');
   const [activeView, setActiveView] = useState<MainView>('matches');
-  const [activeDateTab, setActiveDateTab] = useState<'yesterday' | 'today' | 'tomorrow'>('today');
+  const todayIso = useMemo(() => formatIsoDate(new Date()), []);
+  const [selectedDate, setSelectedDate] = useState<string>(todayIso);
+  const [isLiveConnected, setIsLiveConnected] = useState<boolean>(true);
+  const [lastUpdatedTime, setLastUpdatedTime] = useState<string>('Just now');
   const [simulationSpeed, setSimulationSpeed] = useState<'paused' | 'normal' | 'fast'>('normal');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [goalAlert, setGoalAlert] = useState<{ match: Match; event: MatchEvent } | null>(null);
@@ -43,6 +48,8 @@ export const App: React.FC = () => {
   useEffect(() => {
     const unsubscribeMatches = liveEngine.subscribe((updatedMatches) => {
       setMatches(updatedMatches);
+      setLastUpdatedTime(liveEngine.lastUpdatedTime || 'Just now');
+      setIsLiveConnected(liveEngine.isLiveFeedConnected);
 
       // Keep selected match modal synchronized in real time
       setSelectedMatch((prev) => {
@@ -81,24 +88,19 @@ export const App: React.FC = () => {
     liveEngine.triggerTestGoal(matchId);
   };
 
-  const handleDateChange = (dateOffset: 'yesterday' | 'today' | 'tomorrow') => {
-    setActiveDateTab(dateOffset);
-    let targetDateObj = new Date();
-    if (dateOffset === 'yesterday') {
-      targetDateObj = new Date(Date.now() - 86400000);
-    } else if (dateOffset === 'tomorrow') {
-      targetDateObj = new Date(Date.now() + 86400000);
-    }
-    const targetDateStr = targetDateObj.toISOString().split('T')[0].replace(/-/g, '');
+  const handleDateSelect = (dateIso: string) => {
+    setSelectedDate(dateIso);
     setIsRefreshing(true);
-    liveEngine.refreshLiveMatches(targetDateStr).finally(() => setIsRefreshing(false));
+    liveEngine.refreshLiveMatches(dateIso).finally(() => {
+      setIsRefreshing(false);
+    });
   };
 
   const handleManualRefresh = () => {
     setIsRefreshing(true);
     soundEffects.playClick();
-    liveEngine.refreshLiveMatches().finally(() => {
-      setTimeout(() => setIsRefreshing(false), 600);
+    liveEngine.refreshLiveMatches(selectedDate, true).finally(() => {
+      setTimeout(() => setIsRefreshing(false), 500);
     });
   };
 
@@ -147,6 +149,9 @@ export const App: React.FC = () => {
       }
       if (activeFilter === 'champions-league') {
         return match.leagueId === 'champions-league';
+      }
+      if (activeFilter === 'europa-league') {
+        return match.leagueId === 'europa-league';
       }
       if (activeFilter === 'la-liga') {
         return match.leagueId === 'la-liga';
@@ -235,7 +240,7 @@ export const App: React.FC = () => {
             <div className="flex items-center gap-2">
               <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-500/20 text-emerald-800 dark:text-emerald-400 text-[11px] font-bold">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                <span>Live Feed Active</span>
+                <span>{language === 'ne' ? 'प्रत्यक्ष फिड सक्रिय' : 'Live Feed Active'}</span>
               </div>
 
               <button
@@ -268,8 +273,41 @@ export const App: React.FC = () => {
         {activeView === 'matches' && (
           <div className="space-y-6">
             
-            {/* Bento Grid Showcase Hub (Featured Match, Nepal NSL Card, Live Stats) */}
-            {!searchQuery && activeFilter === 'all' && (
+            {/* 1-Month Date Ribbon (-7 days to +21 days) */}
+            <DateNavigator
+              selectedDate={selectedDate}
+              onSelectDate={handleDateSelect}
+              language={language}
+              isLiveFeedConnected={isLiveConnected}
+              lastUpdatedTime={lastUpdatedTime}
+              isRefreshing={isRefreshing}
+              onRefresh={handleManualRefresh}
+              totalMatchesCount={filteredMatches.length}
+              liveMatchesCount={liveCount}
+            />
+
+            {/* Context notice when browsing past or future dates */}
+            {selectedDate !== todayIso && (
+              <div className="flex items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 text-xs shadow-xs transition-colors">
+                <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-semibold">
+                  <Calendar className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span>
+                    {language === 'ne'
+                      ? `${selectedDate} को खेलहरू देखाइँदैछ।`
+                      : `Viewing matches for ${selectedDate}.`}
+                  </span>
+                </div>
+                <button
+                  onClick={() => handleDateSelect(todayIso)}
+                  className="px-3 py-1 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold text-xs transition-all cursor-pointer shadow-xs"
+                >
+                  {language === 'ne' ? 'आजका खेलहरू' : 'Return to Today'}
+                </button>
+              </div>
+            )}
+
+            {/* Bento Grid Showcase Hub (Featured Match, Nepal NSL Card, Live Stats) - shown on Today */}
+            {selectedDate === todayIso && !searchQuery && activeFilter === 'all' && (
               <BentoGrid
                 matches={matches}
                 onSelectMatch={handleSelectMatch}
@@ -283,15 +321,12 @@ export const App: React.FC = () => {
               
               {/* Left Main Matches Area (8 columns on lg) */}
               <div className="lg:col-span-8 space-y-5">
-                {/* Filter and Date Strip */}
+                {/* Competition Filter Strip */}
                 <LeagueFilter
                   activeFilter={activeFilter}
                   onFilterChange={setActiveFilter}
                   language={language}
                   liveCount={liveCount}
-                  selectedDate="2026-10-19"
-                  onDateChange={handleDateChange}
-                  activeDateTab={activeDateTab}
                   simulationSpeed={simulationSpeed}
                   onSpeedChange={handleSpeedChange}
                 />

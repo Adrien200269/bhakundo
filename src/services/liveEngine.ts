@@ -18,29 +18,73 @@ class LiveFootballEngine {
   public externalApiProvider: 'none' | 'football-data' = 'none';
   public isLiveFeedConnected: boolean = false;
   public lastUpdatedTime: string = 'Just now';
+  public selectedDate: string = new Date().toISOString().split('T')[0];
+  private cacheByDate = new Map<string, { matches: Match[]; timestamp: number }>();
 
   constructor() {
     // Start with initial seed, then immediately hydrate with live worldwide data
     this.matches = JSON.parse(JSON.stringify(INITIAL_MATCHES));
-    this.refreshLiveMatches();
+    this.refreshLiveMatches(this.selectedDate, true);
     this.startEngine();
     this.startApiPolling();
+    this.setupAutoSyncListeners();
+  }
+
+  private setupAutoSyncListeners() {
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          // Immediately check and update data when user returns to the tab
+          this.refreshLiveMatches(this.selectedDate, true);
+        }
+      });
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', () => {
+        this.isLiveFeedConnected = true;
+        this.refreshLiveMatches(this.selectedDate, true);
+      });
+      window.addEventListener('offline', () => {
+        this.isLiveFeedConnected = false;
+        this.notify();
+      });
+    }
   }
 
   public getMatches(): Match[] {
     return this.matches;
   }
 
-  public async refreshLiveMatches(targetDate?: string): Promise<void> {
+  public async refreshLiveMatches(targetDate?: string, force = false): Promise<void> {
+    if (targetDate) {
+      this.selectedDate = targetDate;
+    }
+
+    const todayIso = new Date().toISOString().split('T')[0];
+    const isToday = this.selectedDate === todayIso;
+
+    // Check cache: for past/future dates, cached data is immediately re-usable
+    const cached = this.cacheByDate.get(this.selectedDate);
+    const now = Date.now();
+    if (!force && cached && (!isToday || (now - cached.timestamp < 25000))) {
+      this.matches = cached.matches;
+      this.notify();
+      return;
+    }
+
     try {
-      const liveMatches = await fetchLiveMatchesFromApi(targetDate);
+      const liveMatches = await fetchLiveMatchesFromApi(this.selectedDate);
       if (liveMatches && liveMatches.length > 0) {
         // Merge favorites state
         const favSet = new Set(this.matches.filter((m) => m.isFavorite).map((m) => m.id));
-        this.matches = liveMatches.map((m) => ({
+        const updated = liveMatches.map((m) => ({
           ...m,
           isFavorite: favSet.has(m.id) || m.isFavorite,
         }));
+
+        this.matches = updated;
+        this.cacheByDate.set(this.selectedDate, { matches: updated, timestamp: now });
         this.isLiveFeedConnected = true;
         this.lastUpdatedTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         this.notify();
@@ -177,10 +221,12 @@ class LiveFootballEngine {
     if (this.apiPollIntervalId) {
       clearInterval(this.apiPollIntervalId);
     }
-    // Poll API every 45 seconds for live real-world match updates
+    // Poll API every 25 seconds for continuous real-world match updates
     this.apiPollIntervalId = window.setInterval(() => {
-      this.refreshLiveMatches();
-    }, 45000);
+      const todayIso = new Date().toISOString().split('T')[0];
+      // Keep today's live scores or currently viewed date continuously updated
+      this.refreshLiveMatches(this.selectedDate || todayIso, true);
+    }, 25000);
   }
 
   private startEngine() {

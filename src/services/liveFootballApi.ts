@@ -1,28 +1,40 @@
 import type { Match, MatchEvent, MatchStats, CommentaryItem, Lineup, HeadToHeadMatch, StandingTeam, Player } from '../types/football';
 import { INITIAL_MATCHES } from '../data/mockData';
+import { getNepaliFixturesForDate } from '../data/nepaliFixtures';
 
 // Public ESPN soccer leagues
 export const LEAGUES_CONFIG = [
   { id: 'eng.1', key: 'premier-league', name: 'Premier League', country: 'England', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
   { id: 'esp.1', key: 'la-liga', name: 'La Liga', country: 'Spain', flag: '🇪🇸' },
   { id: 'uefa.champions', key: 'champions-league', name: 'UEFA Champions League', country: 'Europe', flag: '⭐' },
+  { id: 'uefa.europa', key: 'europa-league', name: 'UEFA Europa League', country: 'Europe', flag: '🏆' },
   { id: 'ita.1', key: 'serie-a', name: 'Serie A', country: 'Italy', flag: '🇮🇹' },
   { id: 'ger.1', key: 'bundesliga', name: 'Bundesliga', country: 'Germany', flag: '🇩🇪' },
   { id: 'fra.1', key: 'ligue-1', name: 'Ligue 1', country: 'France', flag: '🇫🇷' },
+  { id: 'eng.fa', key: 'fa-cup', name: 'English FA Cup', country: 'England', flag: '🦁' },
+  { id: 'eng.league_cup', key: 'carabao-cup', name: 'Carabao Cup', country: 'England', flag: '🥤' },
+  { id: 'afc.champions', key: 'afc-champions', name: 'AFC Champions League Elite', country: 'Asia', flag: '🌏' },
 ];
 
 export async function fetchLiveMatchesFromApi(targetDate?: string): Promise<Match[]> {
   const matchesList: Match[] = [];
 
+  // Normalize target date to ISO (YYYY-MM-DD) and clean format (YYYYMMDD)
+  const todayIso = new Date().toISOString().split('T')[0];
+  let targetIso = todayIso;
+  if (targetDate) {
+    if (targetDate.includes('-')) {
+      targetIso = targetDate;
+    } else if (targetDate.length === 8) {
+      targetIso = `${targetDate.slice(0, 4)}-${targetDate.slice(4, 6)}-${targetDate.slice(6, 8)}`;
+    }
+  }
+  const cleanDate = targetIso.replace(/-/g, '');
+
   // 1. Fetch real-world matches across top global leagues
   for (const cfg of LEAGUES_CONFIG) {
     try {
-      let url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${cfg.id}/scoreboard`;
-      if (targetDate) {
-        const cleanDate = targetDate.replace(/-/g, '');
-        url += `?dates=${cleanDate}`;
-      }
-
+      const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${cfg.id}/scoreboard?dates=${cleanDate}`;
       const res = await fetch(url);
       if (!res.ok) continue;
 
@@ -123,13 +135,20 @@ export async function fetchLiveMatchesFromApi(targetDate?: string): Promise<Matc
   }
 
   // 2. Dynamic Nepali Football matches (Nepal Super League & Nepal National Team)
-  const todayStr = new Date().toISOString().split('T')[0];
-  const nepaliMatches: Match[] = INITIAL_MATCHES.filter(
-    (m) => m.leagueCountry === 'Nepal' || m.homeTeam.country === 'Nepal'
-  ).map((m) => ({
-    ...m,
-    date: todayStr,
-  }));
+  const nepaliMatches = getNepaliFixturesForDate(targetIso);
+
+  // If both ESPN and Nepali returns 0 (e.g. rare date with no ESPN matches scheduled)
+  if (matchesList.length === 0 && nepaliMatches.length === 0) {
+    if (targetIso === todayIso) {
+      return INITIAL_MATCHES;
+    }
+    // Return sample matches mapped to this date so user can explore
+    return INITIAL_MATCHES.map((m) => ({
+      ...m,
+      date: targetIso,
+      status: targetIso < todayIso ? 'FINISHED' : targetIso > todayIso ? 'UPCOMING' : m.status,
+    }));
+  }
 
   // Combine real-world live matches and Nepali football
   return [...nepaliMatches, ...matchesList];
