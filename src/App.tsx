@@ -84,10 +84,6 @@ export const App: React.FC = () => {
     liveEngine.toggleFavorite(matchId);
   };
 
-  const handleSimulateGoal = (matchId: string) => {
-    liveEngine.triggerTestGoal(matchId);
-  };
-
   const handleDateSelect = (dateIso: string) => {
     setSelectedDate(dateIso);
     setIsRefreshing(true);
@@ -335,19 +331,37 @@ export const App: React.FC = () => {
                 {filteredMatches.length === 0 ? (
                   <div className="text-center py-16 bg-white dark:bg-slate-900/60 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 space-y-3 shadow-sm">
                     <div className="text-4xl">⚽</div>
-                    <h4 className="text-base font-bold text-slate-800 dark:text-slate-300">{t.noMatchesFound}</h4>
-                    <p className="text-xs text-slate-500">
-                      Try clearing your search query or selecting a different category.
+                    <h4 className="text-base font-bold text-slate-800 dark:text-slate-300">
+                      {matches.length === 0
+                        ? (language === 'ne' ? 'यस मितिमा कुनै खेल तय गरिएको छैन' : 'No Official Matches Scheduled for This Date')
+                        : t.noMatchesFound}
+                    </h4>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                      {matches.length === 0
+                        ? (language === 'ne' ? 'अन्य मितिहरू छनौट गर्नुहोस् वा आजका प्रत्यक्ष खेलहरू हेर्नुहोस्।' : 'Official schedules for this date have no fixtures across monitored leagues. Select another date or jump to today.')
+                        : (language === 'ne' ? 'खोज फिल्टरहरू परिवर्तन गर्नुहोस् वा सबै खेलहरू हेर्नुहोस्।' : 'Try clearing your search query or selecting a different league filter.')}
                     </p>
-                    <button
-                      onClick={() => {
-                        setActiveFilter('all');
-                        setSearchQuery('');
-                      }}
-                      className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer border border-slate-200 dark:border-slate-700"
-                    >
-                      Reset Filters
-                    </button>
+                    <div className="flex items-center justify-center gap-2 pt-2">
+                      {selectedDate !== todayIso && (
+                        <button
+                          onClick={() => handleDateSelect(todayIso)}
+                          className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-all shadow-md shadow-red-600/20 cursor-pointer"
+                        >
+                          {language === 'ne' ? 'आजका खेलहरू हेर्नुहोस्' : 'Jump to Today'}
+                        </button>
+                      )}
+                      {(activeFilter !== 'all' || searchQuery) && (
+                        <button
+                          onClick={() => {
+                            setActiveFilter('all');
+                            setSearchQuery('');
+                          }}
+                          className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer border border-slate-200 dark:border-slate-700"
+                        >
+                          {language === 'ne' ? 'फिल्टर रिसेट गर्नुहोस्' : 'Reset Filters'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -369,7 +383,6 @@ export const App: React.FC = () => {
                   matches={matches}
                   onSelectMatch={handleSelectMatch}
                   language={language}
-                  onSimulateGoal={handleSimulateGoal}
                 />
               </div>
             </div>
@@ -397,7 +410,6 @@ export const App: React.FC = () => {
         onClose={() => setSelectedMatch(null)}
         language={language}
         isLoading={isLoadingMatchDetails}
-        onSimulateGoal={handleSimulateGoal}
       />
 
       {/* 6. Real-time Goal Alert Toast Popup */}
@@ -420,13 +432,15 @@ export const App: React.FC = () => {
           <div className="flex items-center gap-3">
             <NepaliFlag size="md" />
             <div>
-              <div className="font-extrabold text-slate-900 dark:text-white text-sm flex items-center gap-1.5 justify-center md:justify-start">
-                <span>Bhakundo</span>
-                <span className="text-red-600 font-semibold">(भाकुण्डो)</span>
+              <div className="font-extrabold text-sm flex items-center gap-1.5 justify-center md:justify-start">
+                <span className="bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 bg-clip-text text-transparent font-black font-brand text-base">
+                  Bhakundo
+                </span>
+                <span className="text-red-500 font-semibold">(भाकुण्डो)</span>
                 <span>🇳🇵</span>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-500 mt-0.5">
-                The Pure, Ad-Free Real-Time Football Network for Nepal and Global Fans.
+                The Official Real-Time Football Network for Nepal and Global Fans.
               </p>
             </div>
           </div>
@@ -434,10 +448,10 @@ export const App: React.FC = () => {
           <div className="flex items-center gap-6 text-slate-500 dark:text-slate-400 text-xs font-semibold">
             <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
               <Shield className="w-3.5 h-3.5" />
-              <span>100% Ad-Free & Privacy First</span>
+              <span>Official 100% Real Live Feeds</span>
             </span>
             <span className="text-slate-300 dark:text-slate-600">•</span>
-            <span>Live Nepal Super League (NSL)</span>
+            <span>Live Nepal & International Matches</span>
             <span className="text-slate-300 dark:text-slate-600">•</span>
             <span>European & Global Competitions</span>
           </div>

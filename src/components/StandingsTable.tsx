@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MOCK_STANDINGS } from '../data/mockData';
 import { Trophy, RefreshCw } from 'lucide-react';
-import NepaliFlag from './NepaliFlag';
 import type { Language } from '../utils/translations';
 import { translations } from '../utils/translations';
 import { soundEffects } from '../utils/soundEffects';
@@ -12,32 +10,25 @@ interface StandingsTableProps {
   language: Language;
 }
 
+type SupportedLeague = 'premier-league' | 'la-liga' | 'serie-a' | 'bundesliga' | 'ligue-1';
+
 export const StandingsTable: React.FC<StandingsTableProps> = ({ language }) => {
-  const [selectedLeague, setSelectedLeague] = useState<'nsl' | 'premier-league' | 'la-liga'>('premier-league');
+  const [selectedLeague, setSelectedLeague] = useState<SupportedLeague>('premier-league');
   const [liveTable, setLiveTable] = useState<StandingTeam[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const t = translations[language];
 
   useEffect(() => {
-    if (selectedLeague === 'nsl') {
-      setLiveTable(MOCK_STANDINGS.nsl.table);
-      return;
-    }
-
     let isMounted = true;
     setLoading(true);
 
     fetchLiveStandings(selectedLeague)
       .then((data) => {
         if (!isMounted) return;
-        if (data && data.length > 0) {
-          setLiveTable(data);
-        } else {
-          setLiveTable(MOCK_STANDINGS[selectedLeague]?.table || []);
-        }
+        setLiveTable(data || []);
       })
       .catch(() => {
-        if (isMounted) setLiveTable(MOCK_STANDINGS[selectedLeague]?.table || []);
+        if (isMounted) setLiveTable([]);
       })
       .finally(() => {
         if (isMounted) setLoading(false);
@@ -48,6 +39,14 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ language }) => {
     };
   }, [selectedLeague]);
 
+  const leagueOptions: { id: SupportedLeague; label: string; flag: string }[] = [
+    { id: 'premier-league', label: 'Premier League', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
+    { id: 'la-liga', label: 'La Liga', flag: '🇪🇸' },
+    { id: 'serie-a', label: 'Serie A', flag: '🇮🇹' },
+    { id: 'bundesliga', label: 'Bundesliga', flag: '🇩🇪' },
+    { id: 'ligue-1', label: 'Ligue 1', flag: '🇫🇷' },
+  ];
+
   return (
     <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-sm dark:shadow-xl transition-colors">
       {/* Header and League Switcher */}
@@ -57,55 +56,30 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ language }) => {
           <h3 className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white flex items-center gap-2">
             <span>{t.standings}</span>
             <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/20 font-mono font-bold">
-              Live Season
+              Official Live Table
             </span>
           </h3>
         </div>
 
         {/* League Selector */}
-        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950/80 p-1 rounded-xl border border-slate-200 dark:border-slate-800 text-xs overflow-x-auto">
-          <button
-            onClick={() => {
-              setSelectedLeague('premier-league');
-              soundEffects.playClick();
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap ${
-              selectedLeague === 'premier-league'
-                ? 'bg-red-600 text-white shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-            }`}
-          >
-            <span>🏴󠁧󠁢󠁥󠁮󠁧󠁿</span>
-            <span>Premier League</span>
-          </button>
-          <button
-            onClick={() => {
-              setSelectedLeague('la-liga');
-              soundEffects.playClick();
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap ${
-              selectedLeague === 'la-liga'
-                ? 'bg-red-600 text-white shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-            }`}
-          >
-            <span>🇪🇸</span>
-            <span>La Liga</span>
-          </button>
-          <button
-            onClick={() => {
-              setSelectedLeague('nsl');
-              soundEffects.playClick();
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap ${
-              selectedLeague === 'nsl'
-                ? 'bg-red-600 text-white shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-            }`}
-          >
-            <NepaliFlag size="sm" className="w-3.5 h-4" />
-            <span>Nepal Super League</span>
-          </button>
+        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950/80 p-1 rounded-xl border border-slate-200 dark:border-slate-800 text-xs overflow-x-auto no-scrollbar">
+          {leagueOptions.map((opt) => (
+            <button
+              key={opt.id}
+              onClick={() => {
+                setSelectedLeague(opt.id);
+                soundEffects.playClick();
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap ${
+                selectedLeague === opt.id
+                  ? 'bg-red-600 text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+            >
+              <span>{opt.flag}</span>
+              <span>{opt.label}</span>
+            </button>
+          ))}
         </div>
       </div>
 
@@ -114,7 +88,11 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ language }) => {
         {loading ? (
           <div className="py-12 flex items-center justify-center gap-2 text-slate-500 dark:text-slate-400 text-xs font-semibold">
             <RefreshCw className="w-4 h-4 animate-spin text-red-600" />
-            <span>Loading live official standings...</span>
+            <span>Loading official standings...</span>
+          </div>
+        ) : liveTable.length === 0 ? (
+          <div className="py-12 text-center text-slate-500 dark:text-slate-400 text-xs font-semibold">
+            Official standings currently unavailable from feed for this competition.
           </div>
         ) : (
           <table className="w-full text-left text-xs sm:text-sm">
@@ -139,65 +117,61 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ language }) => {
                   key={row.team.id}
                   className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors font-medium text-slate-700 dark:text-slate-200"
                 >
-                  {/* Rank */}
-                  <td className="py-3 pl-2 font-mono">
-                    <span
-                      className={`inline-flex items-center justify-center w-5 h-5 rounded-md font-bold text-xs ${
-                        row.zone === 'champions' || row.zone === 'ucl'
-                          ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30'
-                          : row.zone === 'relegation'
-                          ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-500/30'
-                          : row.zone === 'uel'
-                          ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-500/30'
-                          : 'text-slate-500 dark:text-slate-400'
-                      }`}
-                    >
-                      {row.rank}
-                    </span>
+                  {/* Rank & Zone Indicator */}
+                  <td className="py-3 pl-2">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`w-1 h-5 rounded-full ${
+                          row.zone === 'ucl'
+                            ? 'bg-blue-600'
+                            : row.zone === 'uel'
+                            ? 'bg-amber-500'
+                            : row.zone === 'relegation'
+                            ? 'bg-red-600'
+                            : 'bg-transparent'
+                        }`}
+                      />
+                      <span className="font-mono font-bold text-xs">{row.rank}</span>
+                    </div>
                   </td>
 
-                  {/* Team Name */}
-                  <td className="py-3 font-bold flex items-center gap-2">
-                    {row.team.logo ? (
-                      <img src={row.team.logo} alt="" className="w-5 h-5 object-contain" />
-                    ) : row.team.flag ? (
-                      <span className="text-sm">{row.team.flag}</span>
-                    ) : null}
-                    <span className="text-slate-900 dark:text-white truncate max-w-[140px] sm:max-w-xs">{row.team.name}</span>
+                  {/* Team Info */}
+                  <td className="py-3">
+                    <div className="flex items-center gap-2.5">
+                      {row.team.logo ? (
+                        <img src={row.team.logo} alt="" className="w-5 h-5 object-contain shrink-0" />
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-bold">
+                          {row.team.shortName?.slice(0, 2)}
+                        </div>
+                      )}
+                      <span className="font-bold text-slate-900 dark:text-white truncate max-w-[130px] sm:max-w-none">
+                        {row.team.name}
+                      </span>
+                    </div>
                   </td>
 
-                  {/* Numbers */}
                   <td className="py-3 text-center font-mono">{row.played}</td>
                   <td className="py-3 text-center font-mono">{row.won}</td>
                   <td className="py-3 text-center font-mono">{row.drawn}</td>
                   <td className="py-3 text-center font-mono">{row.lost}</td>
-                  <td className="py-3 text-center font-mono hidden md:table-cell text-slate-500 dark:text-slate-400">
-                    {row.gf}
+                  <td className="py-3 text-center font-mono text-slate-400 hidden md:table-cell">{row.gf}</td>
+                  <td className="py-3 text-center font-mono text-slate-400 hidden md:table-cell">{row.ga}</td>
+                  <td className="py-3 text-center font-mono font-bold text-slate-800 dark:text-slate-200">
+                    {row.gd > 0 ? `+${row.gd}` : row.gd}
                   </td>
-                  <td className="py-3 text-center font-mono hidden md:table-cell text-slate-500 dark:text-slate-400">
-                    {row.ga}
-                  </td>
-                  <td className="py-3 text-center font-mono">
-                    <span className={row.gd > 0 ? 'text-emerald-600 dark:text-emerald-400 font-bold' : row.gd < 0 ? 'text-red-600 dark:text-red-400 font-bold' : 'text-slate-500 dark:text-slate-400'}>
-                      {row.gd > 0 ? `+${row.gd}` : row.gd}
-                    </span>
-                  </td>
-                  <td className="py-3 text-center font-mono font-black text-amber-600 dark:text-amber-400 text-sm">
+                  <td className="py-3 text-center font-mono font-black text-sm text-slate-900 dark:text-white">
                     {row.points}
                   </td>
 
-                  {/* Form guide pills */}
+                  {/* Form Icons */}
                   <td className="py-3 text-center hidden sm:table-cell">
                     <div className="flex items-center justify-center gap-1">
-                      {row.form.map((f, i) => (
+                      {(row.form || []).map((f, i) => (
                         <span
                           key={i}
-                          className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black text-white ${
-                            f === 'W'
-                              ? 'bg-emerald-600'
-                              : f === 'D'
-                              ? 'bg-slate-500'
-                              : 'bg-rose-600'
+                          className={`w-4 h-4 rounded text-[9px] font-mono font-black flex items-center justify-center text-white ${
+                            f === 'W' ? 'bg-emerald-600' : f === 'D' ? 'bg-slate-400' : 'bg-rose-600'
                           }`}
                         >
                           {f}
@@ -210,6 +184,22 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ language }) => {
             </tbody>
           </table>
         )}
+      </div>
+
+      {/* Legend Footer */}
+      <div className="flex flex-wrap items-center gap-4 pt-4 mt-2 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+          <span>UEFA Champions League</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+          <span>UEFA Europa League</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-red-600" />
+          <span>Relegation Zone</span>
+        </div>
       </div>
     </div>
   );

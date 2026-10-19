@@ -1,24 +1,21 @@
 import React, { useMemo } from 'react';
 import type { Match } from '../types/football';
 import type { Language } from '../utils/translations';
-import { Flame, Sparkles, ChevronRight, Zap, ShieldCheck } from 'lucide-react';
+import { Flame, ChevronRight, Zap, Radio, Activity } from 'lucide-react';
 import NepaliFlag from './NepaliFlag';
 
 interface RightSidebarTickerProps {
   matches: Match[];
   onSelectMatch: (match: Match) => void;
   language: Language;
-  onSimulateGoal?: (matchId: string) => void;
 }
 
 export const RightSidebarTicker: React.FC<RightSidebarTickerProps> = ({
   matches,
   onSelectMatch,
   language,
-  onSimulateGoal,
 }) => {
-
-  // Extract all recent match incidents (goals, cards, substitutions, commentary highlights)
+  // Extract all real match incidents (goals, cards, substitutions, commentary highlights)
   const tickerEvents = useMemo(() => {
     const list: {
       id: string;
@@ -31,7 +28,7 @@ export const RightSidebarTicker: React.FC<RightSidebarTickerProps> = ({
     }[] = [];
 
     matches.forEach((m) => {
-      // 1. Goals and key events
+      // 1. Goals and key official events
       (m.events || []).forEach((ev) => {
         const team = ev.teamId === m.homeTeam?.id ? m.homeTeam : m.awayTeam;
         list.push({
@@ -47,7 +44,7 @@ export const RightSidebarTicker: React.FC<RightSidebarTickerProps> = ({
         });
       });
 
-      // 2. Commentary chances / highlights
+      // 2. Commentary chances / highlights from live feed
       (m.commentary || []).slice(0, 3).forEach((comm) => {
         if (comm.type === 'goal' || comm.type === 'chance') {
           list.push({
@@ -63,52 +60,7 @@ export const RightSidebarTicker: React.FC<RightSidebarTickerProps> = ({
       });
     });
 
-    // Default curated fallback events if matches list is quiet
-    if (list.length === 0) {
-      list.push(
-        {
-          id: 'def-1',
-          match: matches[0] || ({} as Match),
-          minute: 76,
-          type: 'goal',
-          text: 'GOAL! Messouke Oloumou converts penalty for Kathmandu Rayzrs!',
-          teamName: 'KTM',
-        },
-        {
-          id: 'def-2',
-          match: matches[0] || ({} as Match),
-          minute: 68,
-          type: 'highlight',
-          text: 'Dasharath Rangasala erupts as Hisub Thapaliya tests the keeper from 25 yards!',
-          teamName: 'KTM',
-        },
-        {
-          id: 'def-3',
-          match: matches[1] || ({} as Match),
-          minute: 79,
-          type: 'goal',
-          text: 'GOAL! Phil Foden rifles a stunner into the top corner at the Emirates!',
-          teamName: 'MCI',
-        },
-        {
-          id: 'def-4',
-          match: matches[0] || ({} as Match),
-          minute: 52,
-          type: 'goal',
-          text: 'GOAL! Imoh Ezekiel thumps in the equalizer for Lalitpur City FC!',
-          teamName: 'LFC',
-        },
-        {
-          id: 'def-5',
-          match: matches[1] || ({} as Match),
-          minute: 48,
-          type: 'goal',
-          text: 'GOAL! Gabriel Martinelli chips smoothly past the keeper on the break!',
-          teamName: 'ARS',
-        }
-      );
-    }
-
+    // Strictly real data only - no synthetic mock fallback!
     // Sort by minute descending
     return list.sort((a, b) => b.minute - a.minute);
   }, [matches]);
@@ -117,8 +69,9 @@ export const RightSidebarTicker: React.FC<RightSidebarTickerProps> = ({
     return matches.filter((m) => m.status === 'LIVE' || m.status === 'HT');
   }, [matches]);
 
-  // Duplicate items for seamless continuous looping in CSS vertical marquee
+  // Duplicate items for continuous looping animation if events exist
   const duplicatedEvents = useMemo(() => {
+    if (tickerEvents.length === 0) return [];
     return [...tickerEvents, ...tickerEvents];
   }, [tickerEvents]);
 
@@ -145,64 +98,84 @@ export const RightSidebarTicker: React.FC<RightSidebarTickerProps> = ({
           </span>
         </div>
 
-        {/* Scrolling Event Ticker Box with Gradient Fade Mask */}
-        <div className="relative h-72 sm:h-80 overflow-hidden">
-          
-          {/* Top & Bottom gradient mask for smooth fade in/out */}
-          <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-white dark:from-slate-900 to-transparent z-10 pointer-events-none" />
-          <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white dark:from-slate-900 to-transparent z-10 pointer-events-none" />
+        {/* Scrolling Event Ticker Box */}
+        <div className="relative h-72 sm:h-80 overflow-hidden flex flex-col justify-center">
+          {tickerEvents.length > 0 ? (
+            <>
+              {/* Top & Bottom gradient mask for smooth fade in/out */}
+              <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-white dark:from-slate-900 to-transparent z-10 pointer-events-none" />
+              <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white dark:from-slate-900 to-transparent z-10 pointer-events-none" />
 
-          {/* Animated Scrolling List */}
-          <div className="animate-scroll-vertical space-y-2.5 pt-2">
-            {duplicatedEvents.map((item, idx) => {
-              const isGoal = item.type === 'goal';
-              const isCard = item.type === 'card';
+              {/* Animated Scrolling List */}
+              <div className="animate-scroll-vertical space-y-2.5 pt-2">
+                {duplicatedEvents.map((item, idx) => {
+                  const isGoal = item.type === 'goal';
+                  const isCard = item.type === 'card';
 
-              return (
-                <div
-                  key={`${item.id}-${idx}`}
-                  onClick={() => item.match?.id && onSelectMatch(item.match)}
-                  className={`p-2.5 rounded-2xl border text-xs cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${
-                    isGoal
-                      ? 'bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-950/40 dark:to-rose-950/20 border-red-200 dark:border-red-500/40 text-red-950 dark:text-red-200'
-                      : isCard
-                      ? 'bg-amber-50/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-500/30 text-amber-950 dark:text-amber-200'
-                      : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/70 text-slate-800 dark:text-slate-200'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-1 mb-1">
-                    <div className="flex items-center gap-1.5 font-bold">
-                      <span className={`px-1.5 py-0.2 rounded font-mono text-[10px] ${
+                  return (
+                    <div
+                      key={`${item.id}-${idx}`}
+                      onClick={() => item.match?.id && onSelectMatch(item.match)}
+                      className={`p-2.5 rounded-2xl border text-xs cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${
                         isGoal
-                          ? 'bg-red-600 text-white'
-                          : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-                      }`}>
-                        {item.minute}'
-                      </span>
-                      <span className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 truncate max-w-[100px]">
-                        {item.teamName}
-                      </span>
+                          ? 'bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-950/40 dark:to-rose-950/20 border-red-200 dark:border-red-500/40 text-red-950 dark:text-red-200'
+                          : isCard
+                          ? 'bg-amber-50/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-500/30 text-amber-950 dark:text-amber-200'
+                          : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/70 text-slate-800 dark:text-slate-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <div className="flex items-center gap-1.5 font-bold">
+                          <span className={`px-1.5 py-0.2 rounded font-mono text-[10px] ${
+                            isGoal
+                              ? 'bg-red-600 text-white'
+                              : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                          }`}>
+                            {item.minute}'
+                          </span>
+                          <span className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 truncate max-w-[100px]">
+                            {item.teamName}
+                          </span>
+                        </div>
+
+                        <span className="text-[11px]">
+                          {isGoal ? '⚽ GOAL' : isCard ? '🟨 Card' : '⚡ Moment'}
+                        </span>
+                      </div>
+
+                      <p className="line-clamp-2 text-[11px] leading-snug font-medium text-slate-700 dark:text-slate-300">
+                        {item.text}
+                      </p>
                     </div>
-
-                    <span className="text-[11px]">
-                      {isGoal ? '⚽ GOAL' : isCard ? '🟨 Card' : '⚡ Moment'}
-                    </span>
-                  </div>
-
-                  <p className="line-clamp-2 text-[11px] leading-snug font-medium text-slate-700 dark:text-slate-300">
-                    {item.text}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            /* Clean honest empty state when no events logged */
+            <div className="h-full flex flex-col items-center justify-center text-center p-4 text-slate-400 dark:text-slate-500 space-y-2.5">
+              <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400">
+                <Radio className="w-5 h-5 text-red-500 animate-pulse" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-bold text-xs text-slate-800 dark:text-slate-200">
+                  {language === 'ne' ? 'कुनै प्रत्यक्ष घटना छैन' : 'No Match Incidents Yet'}
+                </p>
+                <p className="text-[11px] leading-relaxed max-w-[220px]">
+                  {language === 'ne'
+                    ? 'खेल सुरु भएपछि प्रत्यक्ष गोल, कार्ड र महत्वपूर्ण पलहरू यहाँ स्ट्रिम हुनेछन्।'
+                    : 'Official live match goals, cards, and commentary will stream here in real time.'}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Hover Pause Hint */}
+        {/* Stream Footer Hint */}
         <div className="pt-2.5 mt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[10px] text-slate-400">
-          <span>Hover to pause stream</span>
+          <span>{tickerEvents.length > 0 ? 'Hover to pause stream' : 'Awaiting kickoff'}</span>
           <span className="flex items-center gap-1 font-semibold text-red-600 dark:text-red-400">
-            <span>Auto-updating</span>
+            <span>Live Auto-Sync</span>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-ping" />
           </span>
         </div>
@@ -225,54 +198,35 @@ export const RightSidebarTicker: React.FC<RightSidebarTickerProps> = ({
           Nepal Super League & National Team
         </h4>
         <p className="text-xs text-red-100/90 leading-relaxed mb-3">
-          100% ad-free live coverage for Dasharath Rangasala fixtures, NSL derbies, and Asian Cup Qualifiers.
+          Official live coverage for Dasharath Rangasala fixtures, NSL derbies, and Asian Cup Qualifiers.
         </p>
 
         <div className="flex items-center justify-between pt-2 border-t border-white/20 text-xs">
           <div className="flex items-center gap-1.5 font-bold">
             <Flame className="w-3.5 h-3.5 text-amber-300" />
-            <span>Kathmandu Derby Live</span>
+            <span>National Team & NSL</span>
           </div>
 
           <span className="px-2 py-1 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-sm text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1">
-            <span>Explore NSL</span>
+            <span>Explore</span>
             <ChevronRight className="w-3 h-3" />
           </span>
         </div>
       </div>
 
-      {/* 3. Quick Goal Simulation / Audio Card */}
-      {onSimulateGoal && (
-        <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 shadow-sm dark:shadow-xl space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="font-extrabold text-xs uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>Goal Celebration Test</span>
-            </h4>
-            <span className="text-[10px] text-slate-400 font-mono">Audio + FX</span>
-          </div>
-
-          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-            Test the live audio horn, referee whistle, stadium roar, and confetti fireworks right in your browser.
-          </p>
-
-          <button
-            onClick={() => onSimulateGoal(matches[0]?.id || 'nsl-live-1')}
-            className="w-full py-2.5 px-3 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white font-extrabold text-xs shadow-md shadow-red-600/20 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4 animate-spin" style={{ animationDuration: '3s' }} />
-            <span>Trigger Stadium Goal Celebration</span>
-          </button>
+      {/* 3. Official Live Coverage Feeds Card */}
+      <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs flex items-center gap-3 shadow-xs">
+        <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center shrink-0">
+          <Activity className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
         </div>
-      )}
-
-      {/* 4. 100% Ad-Free Guarantee Badge Card */}
-      <div className="p-3.5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-500/20 text-emerald-900 dark:text-emerald-200 text-xs flex items-center gap-3 shadow-xs">
-        <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
         <div className="leading-snug">
-          <span className="font-bold block">100% Ad-Free Guarantee</span>
-          <span className="text-[11px] text-emerald-700 dark:text-emerald-400">
-            Zero betting banners, no tracking cookies, pure football passion.
+          <span className="font-bold block text-slate-900 dark:text-white">
+            {language === 'ne' ? 'आधिकारिक प्रत्यक्ष फिड' : 'Official Live Feeds'}
+          </span>
+          <span className="text-[11px] text-slate-500 dark:text-slate-400">
+            {language === 'ne'
+              ? '२२+ अन्तर्राष्ट्रिय तथा महादेशीय प्रतियोगिताहरू सक्रिय'
+              : 'Real-time score & stat feeds across 22+ official global competitions'}
           </span>
         </div>
       </div>

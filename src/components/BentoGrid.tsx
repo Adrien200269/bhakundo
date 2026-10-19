@@ -153,32 +153,53 @@ export const BentoGrid: React.FC<BentoGridProps> = ({
           </div>
         )}
 
-        {/* TILE 2: NEPAL SUPER LEAGUE SPOTLIGHT */}
+        {/* TILE 2: MATCHDAY SPOTLIGHT */}
         <div
-          onClick={() => onFilterCategory('nepal')}
+          onClick={() => onFilterCategory(matches.some((m) => m.leagueCountry === 'Nepal' || m.homeTeam?.country === 'Nepal') ? 'nepal' : 'premier-league')}
           className="group relative bg-gradient-to-br from-red-600 via-rose-600 to-[#003893] text-white rounded-3xl p-5 border border-red-500/50 shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-between"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <NepaliFlag size="sm" className="w-4 h-5" />
-              <span className="text-[10px] font-black uppercase tracking-widest bg-white/20 px-2 py-0.5 rounded-full">
-                Nepal Focus
-              </span>
+              {matches.some((m) => m.leagueCountry === 'Nepal' || m.homeTeam?.country === 'Nepal') ? (
+                <>
+                  <NepaliFlag size="sm" className="w-4 h-5" />
+                  <span className="text-[10px] font-black uppercase tracking-widest bg-white/20 px-2 py-0.5 rounded-full">
+                    Nepal Focus
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="text-base">🏴󠁧󠁢󠁥󠁮󠁧󠁿</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest bg-white/20 px-2 py-0.5 rounded-full">
+                    Top Competition
+                  </span>
+                </>
+              )}
             </div>
             <Flame className="w-4 h-4 text-amber-300 animate-pulse" />
           </div>
 
           <div className="my-2">
-            <h3 className="font-black text-lg leading-snug">Nepal Super League (NSL)</h3>
+            <h3 className="font-black text-lg leading-snug">
+              {matches.some((m) => m.leagueCountry === 'Nepal' || m.homeTeam?.country === 'Nepal')
+                ? 'Nepali Football Spotlight'
+                : 'Premier League Matchday'}
+            </h3>
             <p className="text-xs text-red-100/90 leading-relaxed mt-1">
-              Live from Dasharath Rangasala, Tripureshwor. All 7 franchise clubs covered in pure real time.
+              {matches.some((m) => m.leagueCountry === 'Nepal' || m.homeTeam?.country === 'Nepal')
+                ? 'Official fixture updates and live coverage.'
+                : 'Live scores, real-time commentary, statistics, and official lineups.'}
             </p>
           </div>
 
           <div className="pt-2 border-t border-white/20 flex items-center justify-between text-xs font-bold">
-            <span className="text-red-100">7 Franchise Clubs</span>
+            <span className="text-red-100">
+              {matches.some((m) => m.leagueCountry === 'Nepal' || m.homeTeam?.country === 'Nepal')
+                ? 'Nepal Football'
+                : 'Live Worldwide'}
+            </span>
             <span className="flex items-center gap-1 bg-white/20 hover:bg-white/30 px-2.5 py-1 rounded-xl transition-all">
-              <span>View NSL</span>
+              <span>View Matches</span>
               <ChevronRight className="w-3 h-3" />
             </span>
           </div>
@@ -220,7 +241,7 @@ export const BentoGrid: React.FC<BentoGridProps> = ({
 
           <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] flex items-center justify-between text-slate-500 dark:text-slate-400">
             <span>Clean sheets, live xG & H2H</span>
-            <span className="font-bold text-emerald-600 dark:text-emerald-400">100% Ad-Free</span>
+            <span className="font-bold text-emerald-600 dark:text-emerald-400">Live Official Feed</span>
           </div>
         </div>
       </div>

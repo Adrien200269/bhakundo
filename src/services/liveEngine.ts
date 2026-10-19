@@ -1,5 +1,4 @@
-import type { Match, MatchEvent, CommentaryItem } from '../types/football';
-import { INITIAL_MATCHES } from '../data/mockData';
+import type { Match, MatchEvent } from '../types/football';
 import { soundEffects } from '../utils/soundEffects';
 import { fetchLiveMatchesFromApi, fetchLiveMatchSummary } from './liveFootballApi';
 import confetti from 'canvas-confetti';
@@ -22,8 +21,7 @@ class LiveFootballEngine {
   private cacheByDate = new Map<string, { matches: Match[]; timestamp: number }>();
 
   constructor() {
-    // Start with initial seed, then immediately hydrate with live worldwide data
-    this.matches = JSON.parse(JSON.stringify(INITIAL_MATCHES));
+    this.matches = [];
     this.refreshLiveMatches(this.selectedDate, true);
     this.startEngine();
     this.startApiPolling();
@@ -75,7 +73,31 @@ class LiveFootballEngine {
 
     try {
       const liveMatches = await fetchLiveMatchesFromApi(this.selectedDate);
-      if (liveMatches && liveMatches.length > 0) {
+      if (liveMatches) {
+        // Detect newly scored goals in real live matches
+        if (this.matches.length > 0 && liveMatches.length > 0) {
+          liveMatches.forEach((newMatch) => {
+            const oldMatch = this.matches.find((m) => m.id === newMatch.id);
+            if (oldMatch && (oldMatch.status === 'LIVE' || oldMatch.status === 'HT')) {
+              const homeDiff = newMatch.homeScore - oldMatch.homeScore;
+              const awayDiff = newMatch.awayScore - oldMatch.awayScore;
+              if (homeDiff > 0 || awayDiff > 0) {
+                const latestGoal = (newMatch.events || []).find((e) => e.type === 'GOAL') || {
+                  id: `goal-${newMatch.id}-${Date.now()}`,
+                  minute: newMatch.minute,
+                  type: 'GOAL' as const,
+                  teamId: homeDiff > 0 ? newMatch.homeTeam.id : newMatch.awayTeam.id,
+                  playerName: homeDiff > 0 ? newMatch.homeTeam.name : newMatch.awayTeam.name,
+                  description: `GOAL! ${homeDiff > 0 ? newMatch.homeTeam.name : newMatch.awayTeam.name} scores!`,
+                };
+                soundEffects.playGoalCheer();
+                this.fireConfetti();
+                this.goalListeners.forEach((cb) => cb(newMatch, latestGoal));
+              }
+            }
+          });
+        }
+
         // Merge favorites state
         const favSet = new Set(this.matches.filter((m) => m.isFavorite).map((m) => m.id));
         const updated = liveMatches.map((m) => ({
@@ -90,7 +112,7 @@ class LiveFootballEngine {
         this.notify();
       }
     } catch (err) {
-      console.warn('Could not refresh live matches from API, using cached matches:', err);
+      console.warn('Could not refresh live matches from API:', err);
     }
   }
 
@@ -130,78 +152,6 @@ class LiveFootballEngine {
   public setSimulationSpeed(speed: 'paused' | 'normal' | 'fast') {
     this.simulationSpeed = speed;
     this.startEngine();
-  }
-
-  public triggerTestGoal(matchId?: string) {
-    const liveMatches = this.matches.filter((m) => m.status === 'LIVE');
-    const target = matchId
-      ? this.matches.find((m) => m.id === matchId)
-      : liveMatches[Math.floor(Math.random() * liveMatches.length)] || this.matches[0];
-
-    if (!target) return;
-
-    // Pick home or away team randomly
-    const isHome = Math.random() > 0.5;
-    const team = isHome ? target.homeTeam : target.awayTeam;
-    const scorerName = isHome ? `${team.shortName} Star Striker` : `${team.shortName} Forward`;
-
-    const newEvent: MatchEvent = {
-      id: `ev-manual-${Date.now()}`,
-      minute: Math.min(target.minute + 1, 90),
-      type: 'GOAL',
-      teamId: team.id,
-      playerName: scorerName,
-      description: 'GOAL! Sensational strike blasted into the top netting!',
-    };
-
-    const newComment: CommentaryItem = {
-      id: `comm-manual-${Date.now()}`,
-      minute: newEvent.minute,
-      type: 'goal',
-      text: `GOAAALLL! ${scorerName} scores an unbelievable goal for ${team.name}!`,
-      teamId: team.id,
-    };
-
-    this.matches = this.matches.map((m) => {
-      if (m.id !== target.id) return m;
-
-      const newHomeScore = isHome ? m.homeScore + 1 : m.homeScore;
-      const newAwayScore = !isHome ? m.awayScore + 1 : m.awayScore;
-      const updatedEvents = [newEvent, ...m.events];
-      const updatedComm = [newComment, ...(m.commentary || [])];
-
-      // Update shot and xG stats
-      const newStats = { ...m.stats };
-      if (isHome) {
-        newStats.shots[0] += 1;
-        newStats.shotsOnTarget[0] += 1;
-        newStats.xG[0] = Number((newStats.xG[0] + 0.45).toFixed(2));
-      } else {
-        newStats.shots[1] += 1;
-        newStats.shotsOnTarget[1] += 1;
-        newStats.xG[1] = Number((newStats.xG[1] + 0.45).toFixed(2));
-      }
-
-      const updatedMatch: Match = {
-        ...m,
-        homeScore: newHomeScore,
-        awayScore: newAwayScore,
-        events: updatedEvents,
-        stats: newStats,
-        commentary: updatedComm,
-      };
-
-      // Sound & Visual Confetti
-      soundEffects.playGoalCheer();
-      this.fireConfetti();
-
-      // Trigger goal notifications
-      this.goalListeners.forEach((cb) => cb(updatedMatch, newEvent));
-
-      return updatedMatch;
-    });
-
-    this.notify();
   }
 
   private fireConfetti() {

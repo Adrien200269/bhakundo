@@ -10,6 +10,20 @@ export const LineupPitch: React.FC<LineupPitchProps> = ({ match }) => {
   const [selectedTeam, setSelectedTeam] = useState<'home' | 'away'>('home');
   const [viewMode, setViewMode] = useState<'pitch' | 'list'>('pitch');
 
+  if (!match.homeLineup && !match.awayLineup) {
+    return (
+      <div className="py-14 px-6 text-center space-y-3 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-200 dark:border-slate-800">
+        <Shield className="w-10 h-10 text-slate-400 dark:text-slate-500 mx-auto" />
+        <h4 className="font-bold text-slate-900 dark:text-white text-sm">
+          Official Lineups Not Announced Yet
+        </h4>
+        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+          Tactical formations and starting lineups will appear here once officially published by team managers (typically 60 minutes prior to kickoff).
+        </p>
+      </div>
+    );
+  }
+
   const currentLineup = selectedTeam === 'home' ? match.homeLineup : match.awayLineup;
   const currentTeam = selectedTeam === 'home' ? match.homeTeam : match.awayTeam;
 
@@ -152,7 +166,7 @@ export const LineupPitch: React.FC<LineupPitchProps> = ({ match }) => {
         <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 px-1">
           <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
             <span className="text-slate-400 dark:text-slate-500 mr-1">Coach:</span>
-            <span className="text-slate-800 dark:text-slate-200 font-bold">{currentLineup.manager || 'Head Coach'}</span>
+            <span className="text-slate-800 dark:text-slate-200 font-bold">{currentLineup?.manager || 'Not Announced'}</span>
           </div>
 
           <div className="flex items-center bg-white dark:bg-slate-900 rounded-lg p-0.5 border border-slate-200 dark:border-slate-800">

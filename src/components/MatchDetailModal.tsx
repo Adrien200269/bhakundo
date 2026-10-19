@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { Match } from '../types/football';
-import { X, MapPin, User, Users, Clock, Activity, Shield, MessageSquare, History, Sparkles, RefreshCw } from 'lucide-react';
+import { X, MapPin, User, Users, Clock, Activity, Shield, MessageSquare, History, RefreshCw } from 'lucide-react';
 import NepaliFlag from './NepaliFlag';
 import LineupPitch from './LineupPitch';
 import type { Language } from '../utils/translations';
@@ -12,7 +12,6 @@ interface MatchDetailModalProps {
   onClose: () => void;
   language: Language;
   isLoading?: boolean;
-  onSimulateGoal?: (matchId: string) => void;
 }
 
 type TabType = 'timeline' | 'stats' | 'lineups' | 'h2h' | 'commentary';
@@ -22,14 +21,12 @@ export const MatchDetailModal: React.FC<MatchDetailModalProps> = ({
   onClose,
   language,
   isLoading = false,
-  onSimulateGoal,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('timeline');
 
   if (!match) return null;
 
   const t = translations[language];
-  const isLive = match.status === 'LIVE' || match.status === 'HT';
 
   const events = match.events || [];
   const commentary = match.commentary || [];
@@ -266,16 +263,7 @@ export const MatchDetailModal: React.FC<MatchDetailModalProps> = ({
             })}
           </div>
 
-          {/* Quick simulation goal in modal */}
-          {isLive && onSimulateGoal && (
-            <button
-              onClick={() => onSimulateGoal(match.id)}
-              className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-100 hover:bg-red-200 dark:bg-red-600/20 dark:hover:bg-red-600/30 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-500/30 text-xs font-bold transition-all cursor-pointer"
-            >
-              <Sparkles className="w-3 h-3 text-amber-500" />
-              <span>Simulate Goal</span>
-            </button>
-          )}
+
         </div>
 
         {/* Modal Tab Content Area */}
